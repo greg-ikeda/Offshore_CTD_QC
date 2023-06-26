@@ -41,7 +41,9 @@ CTDdata <- import_CTD(test_data) %>%
          Month = month(Sampledate), 
          Day = day(Sampledate), 
          YearDay = yday(Sampledate),
-         Date = as.Date(Sampledate))
+         Date = as.Date(Sampledate), 
+         Bin = depth_bin(Depth, bin_width), 
+         BinDepth = sapply(Bin, get_bin_depth))
 tz(CTDdata$Sampledate) <- "America/Los_Angeles"
 
 badquals <- c("E", "TA, E", "E, Rej", "E,Rej", "E, rej", "R, E", "E, TA",
@@ -53,9 +55,13 @@ goodqual <- "TA"
 bin_width <- 0.5
 
 CTDdata_flagged <- CTDdata %>% 
-  mutate(Bin = depth_bin(Depth, bin_width), 
-         BinDepth = sapply(Bin, get_bin_depth))
-tz(CTDdata$Sampledate) <- "America/Los_Angeles"
+  mutate(Chlorophyll = ifelse(Chlorophyll_Qual %in% badquals, NA, Chlorophyll), 
+         Density = ifelse(Density_Qual %in% badquals, NA, Density), 
+         DO = ifelse(DO_Qual %in% badquals, NA, DO), 
+         SigmaT = ifelse(SigmaTheta_Qual %in% badquals, NA, SigmaTheta), 
+         Salinity = ifelse(Salinity_Qual %in% badquals, NA, Salinity), 
+         Temperature = ifelse(Temperature_Qual %in% badquals, NA, Temperature), 
+         NO23 = ifelse(NO23_Qual %in% badquals, NA, NO23))
 
 # Creates a baseline from the first sample in the dataset to the prior year (e.g. 1998 - 2022 for a profile in 2023)
 base_start <- min(CTDdata_flagged$Year)
@@ -89,8 +95,8 @@ baseline_data <- CTDdata_flagged %>%
          Turbidity_Qual,
          NO23,
          NO23_Qual,
-         Month, 
-         Year) %>% 
+         Month) %>% 
+  mutate(Year = year(Sampledate)) %>% 
   filter(Year >= base_start, 
          Year <= base_end)
 
@@ -123,7 +129,7 @@ baseline <- baseline_data %>%
             n_samples = n())
 
 # This df has all of the data that we will be working with - baselines, standard deviations, flags
-working_data <- full_join(CTDdata_flagged, baseline)
+working_data <- full_join(CTDdata, baseline)
 
 # Flagging based on extreme values ----------------------------------------
 
