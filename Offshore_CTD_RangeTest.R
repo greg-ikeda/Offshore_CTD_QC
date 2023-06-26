@@ -54,18 +54,7 @@ bin_width <- 0.5
 
 CTDdata_flagged <- CTDdata %>% 
   mutate(Bin = depth_bin(Depth, bin_width), 
-         BinDepth = sapply(Bin, get_bin_depth), 
-         # Year = year(Sampledate), 
-         # Month = month(Sampledate), 
-         # Day = day(Sampledate), 
-         # YearDay = yday(Sampledate), 
-         Chlorophyll = ifelse(Chlorophyll_Qual %in% badquals, NA, Chlorophyll), 
-         Density = ifelse(Density_Qual %in% badquals, NA, Density), 
-         DO = ifelse(DO_Qual %in% badquals, NA, DO), 
-         SigmaT = ifelse(SigmaTheta_Qual %in% badquals, NA, SigmaTheta), 
-         Salinity = ifelse(Salinity_Qual %in% badquals, NA, Salinity), 
-         Temperature = ifelse(Temperature_Qual %in% badquals, NA, Temperature), 
-         NO23 = ifelse(NO23_Qual %in% badquals, NA, NO23))
+         BinDepth = sapply(Bin, get_bin_depth))
 tz(CTDdata$Sampledate) <- "America/Los_Angeles"
 
 # Creates a baseline from the first sample in the dataset to the prior year (e.g. 1998 - 2022 for a profile in 2023)
