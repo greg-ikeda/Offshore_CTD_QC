@@ -89,8 +89,8 @@ baseline_data <- CTDdata_flagged %>%
          Turbidity_Qual,
          NO23,
          NO23_Qual,
-         Month) %>% 
-  mutate(Year = year(Sampledate)) %>% 
+         Month, 
+         Year) %>% 
   filter(Year >= base_start, 
          Year <= base_end)
 
