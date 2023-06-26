@@ -35,6 +35,14 @@ test_data <- here("data", "KSBP01_Example.csv")
 
 # Load data and calculate baseline/Standard deviations --------------------------
 
+badquals <- c("E", "TA, E", "E, Rej", "E,Rej", "E, rej", "R, E", "E, TA",
+              "rej", "Rej", "REJ", "R", "Rej, E, TA", "E, TA, rej", "R, TA", "Rej, E",
+              "TA, Q", "Q")
+
+goodqual <- "TA"
+
+bin_width <- 0.5
+
 # CTDdata <- import_CTD(paste0(folder, fname))
 CTDdata <- import_CTD(test_data) %>% 
   mutate(Year = year(Sampledate), 
@@ -45,14 +53,6 @@ CTDdata <- import_CTD(test_data) %>%
          Bin = depth_bin(Depth, bin_width), 
          BinDepth = sapply(Bin, get_bin_depth))
 tz(CTDdata$Sampledate) <- "America/Los_Angeles"
-
-badquals <- c("E", "TA, E", "E, Rej", "E,Rej", "E, rej", "R, E", "E, TA",
-              "rej", "Rej", "REJ", "R", "Rej, E, TA", "E, TA, rej", "R, TA", "Rej, E",
-              "TA, Q", "Q")
-
-goodqual <- "TA"
-
-bin_width <- 0.5
 
 CTDdata_flagged <- CTDdata %>% 
   mutate(Chlorophyll = ifelse(Chlorophyll_Qual %in% badquals, NA, Chlorophyll), 
