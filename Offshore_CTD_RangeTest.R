@@ -54,6 +54,7 @@ CTDdata <- import_CTD(test_data) %>%
          BinDepth = sapply(Bin, get_bin_depth))
 tz(CTDdata$Sampledate) <- "America/Los_Angeles"
 
+# Create CTDdata_flagged for baseline calculation WITHOUT previously-flagged bad data
 CTDdata_flagged <- CTDdata %>% 
   mutate(Chlorophyll = ifelse(Chlorophyll_Qual %in% badquals, NA, Chlorophyll), 
          Density = ifelse(Density_Qual %in% badquals, NA, Density), 
@@ -95,8 +96,8 @@ baseline_data <- CTDdata_flagged %>%
          Turbidity_Qual,
          NO23,
          NO23_Qual,
-         Month) %>% 
-  mutate(Year = year(Sampledate)) %>% 
+         Month, 
+         Year) %>% 
   filter(Year >= base_start, 
          Year <= base_end)
 
