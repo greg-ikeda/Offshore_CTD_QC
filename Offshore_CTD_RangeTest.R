@@ -15,21 +15,21 @@ starttime <- Sys.time()
 
 # Setup -------------------------------------------------------------------
 
-# What station do you want figures from?
-station <- "KSBP01"
-
-# # Where do you want to save output?
-save_folder <- paste0(here(), "/output")
-folder <- paste0("C:\\Users\\gikeda\\R\\Offshore_CTD_QC\\data\\",
-                 station, "\\")
-fname <- list.files(folder, pattern = "_qcd.csv")
-
 ## 
-## This is currently only running on a selection of data from KSBP01 (or whatever file is referenced in "test_data"). 
+## This is currently only running on a selection of data from KSBP01 (or whichever file is referenced in "test_data"). 
 ## This has not been vetted for other stations yet!
 ## May need to program specific cutoff values and standard deviation multipliers for each station
 ## I hope not. 
 ##
+
+# What station do you want figures from?
+station <- "KSBP01"
+
+# # Where do you want to save output?
+save_folder <- here("output")
+folder <- paste0("C:\\Users\\gikeda\\R\\Offshore_CTD_QC\\",
+                 station, "\\")
+fname <- list.files(folder, pattern = "_qcd.csv")
 
 test_data <- "C:\\Users\\gikeda\\R\\Offshore_CTD_QC\\data\\KSBP01_Example.csv"
 
@@ -40,22 +40,25 @@ CTDdata <- import_CTD(test_data) %>%
   mutate(Year = year(Sampledate), 
          Month = month(Sampledate), 
          Day = day(Sampledate), 
-         YearDay = yday(Sampledate))
+         YearDay = yday(Sampledate),
+         Date = as.Date(Sampledate))
 tz(CTDdata$Sampledate) <- "America/Los_Angeles"
 
 badquals <- c("E", "TA, E", "E, Rej", "E,Rej", "E, rej", "R, E", "E, TA",
               "rej", "Rej", "REJ", "R", "Rej, E, TA", "E, TA, rej", "R, TA", "Rej, E",
               "TA, Q", "Q")
 
+goodqual <- "TA"
+
 bin_width <- 0.5
 
 CTDdata_flagged <- CTDdata %>% 
   mutate(Bin = depth_bin(Depth, bin_width), 
          BinDepth = sapply(Bin, get_bin_depth), 
-         Year = year(Sampledate), 
-         Month = month(Sampledate), 
-         Day = day(Sampledate), 
-         YearDay = yday(Sampledate), 
+         # Year = year(Sampledate), 
+         # Month = month(Sampledate), 
+         # Day = day(Sampledate), 
+         # YearDay = yday(Sampledate), 
          Chlorophyll = ifelse(Chlorophyll_Qual %in% badquals, NA, Chlorophyll), 
          Density = ifelse(Density_Qual %in% badquals, NA, Density), 
          DO = ifelse(DO_Qual %in% badquals, NA, DO), 
@@ -66,9 +69,11 @@ CTDdata_flagged <- CTDdata %>%
 tz(CTDdata$Sampledate) <- "America/Los_Angeles"
 
 # Creates a baseline from the first sample in the dataset to the prior year (e.g. 1998 - 2022 for a profile in 2023)
-base_start <- year(min(CTDdata_flagged$Sampledate))
-base_end <- year(max(CTDdata_flagged$Sampledate)) - 1
+base_start <- min(CTDdata_flagged$Year)
+base_end <- max(CTDdata_flagged$Year) - 1
 
+# Similar to contour script - 
+# creates baseline data, calculates baseline data, then adds those columns to the working df "working_data"
 baseline_data <- CTDdata_flagged %>% 
   select(Sampledate,
          Depth,
@@ -98,8 +103,7 @@ baseline_data <- CTDdata_flagged %>%
          Month) %>% 
   mutate(Year = year(Sampledate)) %>% 
   filter(Year >= base_start, 
-         Year <= base_end) %>% 
-  group_by(Year, Month)
+         Year <= base_end)
 
 baseline <- baseline_data %>% 
   group_by(Month, BinDepth) %>% 
@@ -126,7 +130,8 @@ baseline <- baseline_data %>%
             SD_PAR = sd(PAR, na.rm = T),
             SD_Surface_PAR = sd(Surface_PAR, na.rm = T),
             SD_Turbidity = sd(Turbidity, na.rm = T),
-            SD_NO23 = sd(NO23, na.rm = T))
+            SD_NO23 = sd(NO23, na.rm = T),
+            n_samples = n())
 
 # This df has all of the data that we will be working with - baselines, standard deviations, flags
 working_data <- full_join(CTDdata_flagged, baseline)
@@ -136,41 +141,41 @@ working_data <- full_join(CTDdata_flagged, baseline)
 extreme_df <- working_data %>%
   mutate(
     Depth_Qual_Auto = case_when(
-      Depth < 0 ~ paste0("Rej"),
-      Depth > 500 ~ paste0("Rej")),
+      Depth < 0 ~ "Rej",
+      Depth > 500 ~ "Rej"),
     Chlorophyll_Qual_Auto = case_when(
-      Chlorophyll < 0 ~ paste0("Rej"),
-      Chlorophyll > 200 ~ paste0("Rej")),
+      Chlorophyll < 0 ~ "Rej",
+      Chlorophyll > 200 ~ "Rej"),
     Density_Qual_Auto = case_when(
-      Density < 500 ~ paste0("Rej"),
-      Density > 1100 ~ paste0("Rej")),
+      Density < 500 ~ "Rej",
+      Density > 1100 ~ "Rej"),
     DO_Qual_Auto = case_when(
-      DO < 0 ~ paste0("Rej"),
-      DO > 15 ~ paste0("Rej")),
+      DO < 0 ~ "Rej",
+      DO > 15 ~ "Rej"),
     SigmaTheta_Qual_Auto = case_when(
-      SigmaTheta < 0 ~ paste0("Rej"),
-      SigmaTheta > 35 ~ paste0("Rej")),
+      SigmaTheta < 0 ~ "Rej",
+      SigmaTheta > 35 ~ "Rej"),
     Light_Transmission_Qual_Auto = case_when(
-      Light_Transmission < 0 ~ paste0("Rej"),
-      Light_Transmission > 100 ~ paste0("Rej")),
+      Light_Transmission < 0 ~ "Rej",
+      Light_Transmission > 100 ~ "Rej"),
     PAR_Qual_Auto = case_when(
-      PAR < -100 ~ paste0("Rej"),
-      PAR > 10000 ~ paste0("Rej")),
+      PAR < 0 ~ "Rej",
+      PAR > 10000 ~ "Rej"),
     Surface_PAR_Qual_Auto = case_when(
-      Surface_PAR < 0 ~ paste0("Rej"),
-      Surface_PAR > 5000 ~ paste0("Rej")),
+      Surface_PAR < 0 ~ "Rej",
+      Surface_PAR > 5000 ~ "Rej"),
     Salinity_Qual_Auto = case_when(
-      Salinity < 0 ~ paste0("Rej"),
-      Salinity > 40 ~ paste0("Rej")),
+      Salinity < 0 ~ "Rej",
+      Salinity > 40 ~ "Rej"),
     Temperature_Qual_Auto = case_when(
-      Temperature < 0 ~ paste0("Rej"),
-      Temperature > 25 ~ paste0("Rej")),
+      Temperature < 0 ~ "Rej",
+      Temperature > 25 ~ "Rej"),
     Turbidity_Qual_Auto = case_when(
-      Turbidity < 0 ~ paste0("Rej"),
-      Turbidity > 125 ~ paste0("Rej")),
+      Turbidity < 0 ~ "Rej",
+      Turbidity > 125 ~ "Rej"),
     NO23_Qual_Auto = case_when(
-      NO23 < 0 ~ paste0("Rej"),
-      NO23 > 5 ~ paste0("Rej"))) %>%
+      NO23 < 0 ~ "Rej",
+      NO23 > 5 ~ "Rej")) %>%
   mutate(flag_reason = "",
          flag_reason = if_else(!is.na(Depth_Qual_Auto), paste0(flag_reason, "Depth_"), flag_reason),
          flag_reason = if_else(!is.na(Chlorophyll_Qual_Auto), paste0(flag_reason, "chl_"), flag_reason),
@@ -185,6 +190,11 @@ extreme_df <- working_data %>%
          flag_reason = if_else(!is.na(Turbidity_Qual_Auto), paste0(flag_reason, "Turb_"), flag_reason),
          flag_reason = if_else(!is.na(NO23_Qual_Auto), paste0(flag_reason, "NO23_"), flag_reason)) %>%
   filter(flag_reason != "")
+
+# Makes a barplot to see the most common culprits
+ggplotly(ggplot(extreme_df)+
+           geom_bar(aes(x = flag_reason))+
+           theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)))
 
 write_csv(extreme_df, paste0(save_folder, "\\Extreme_values.csv"))
 
@@ -279,8 +289,20 @@ endtime <- Sys.time()
 
 # Scratchpad --------------------------------------------------------------
 
+test_plot <- ggplot(test)+
+  geom_path(aes(y = BinDepth,
+                x = BaselineDO))+
+  scale_y_reverse()
 
-# 
+test_plot2 <- ggplot(test)+
+  geom_line(aes(x = BinDepth,
+                y = BaselineDO))+
+  scale_x_reverse()+
+  coord_flip()+
+  geom_polygon(aes(x = BinDepth,
+                   y = BaselineDO))
+
+
 # autoqual_fields <- c(
 #   "Depth_Qual_Auto",
 #   "Chlorophyll_Qual_Auto",
@@ -302,7 +324,7 @@ endtime <- Sys.time()
 # DO"                0, 15
 # SigmaTheta"        0, 35
 # Light_Transmission 0, 100
-# PAR"               -100, 10000
+# PAR"               0, 10000
 # Surface_PAR"       0, 5000
 # Salinity"          0, 40
 # Temperature"       0, 25
