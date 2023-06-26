@@ -244,16 +244,16 @@ test <- baseline %>%
 
 test_plot <- ggplot(test)+
   geom_path(aes(y = BinDepth,
-                x = BaselineDO))+
+                x = DO_mean))+
   scale_y_reverse()+
   geom_path(aes(y = BinDepth,
-                x = BaselineDO + SD_DO),
+                x = DO_mean + DO_sd),
             color = "blue")+
   geom_path(aes(y = BinDepth,
-                x = BaselineDO - SD_DO),
+                x = DO_mean - DO_sd),
             color = "blue")+
   geom_polygon(aes(y = BinDepth,
-                   x = BaselineDO - SD_DO))
+                   x = DO_mean - DO_sd))
 
 plotly::ggplotly(test_plot)
 
@@ -266,16 +266,16 @@ endtime <- Sys.time()
 
 test_plot <- ggplot(test)+
   geom_path(aes(y = BinDepth,
-                x = BaselineDO))+
+                x = DO_mean))+
   scale_y_reverse()
 
 test_plot2 <- ggplot(test)+
   geom_line(aes(x = BinDepth,
-                y = BaselineDO))+
+                y = DO_mean))+
   scale_x_reverse()+
   coord_flip()+
   geom_polygon(aes(x = BinDepth,
-                   y = BaselineDO))
+                   y = DO_mean))
 
 
 # autoqual_fields <- c(
