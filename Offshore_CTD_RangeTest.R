@@ -46,7 +46,7 @@ tz(CTDdata$Sampledate) <- "America/Los_Angeles"
 badquals <- c("E", "TA, E", "E, Rej", "E,Rej", "E, rej", "R, E", "E, TA",
               "rej", "Rej", "REJ", "R", "Rej, E, TA", "E, TA, rej", "R, TA", "Rej, E",
               "TA, Q", "Q")
-test 
+
 bin_width <- 0.5
 
 CTDdata_flagged <- CTDdata %>% 
