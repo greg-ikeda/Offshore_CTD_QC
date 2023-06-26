@@ -9,7 +9,7 @@ library(cmocean)
 library(RColorBrewer)
 library(here)
 library(plotly)
-source(paste0(here(), "/", "contour_functions.R"))
+source(here("contour_functions.R"))
 
 starttime <- Sys.time()
 
@@ -27,11 +27,11 @@ station <- "KSBP01"
 
 # # Where do you want to save output?
 save_folder <- here("output")
-folder <- paste0("C:\\Users\\gikeda\\R\\Offshore_CTD_QC\\",
-                 station, "\\")
-fname <- list.files(folder, pattern = "_qcd.csv")
+# folder <- paste0("C:\\Users\\gikeda\\R\\Offshore_CTD_QC\\",
+#                  station, "\\")
+# fname <- list.files(folder, pattern = "_qcd.csv")
 
-test_data <- "C:\\Users\\gikeda\\R\\Offshore_CTD_QC\\data\\KSBP01_Example.csv"
+test_data <- here("data", "KSBP01_Example.csv")
 
 # Load data and calculate baseline/Standard deviations --------------------------
 
@@ -258,7 +258,7 @@ ggplotly(ggplot(stnddev_df)+
   geom_bar(aes(x = flag_reason))+
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)))
 
-write_csv(stnddev_df, paste0(save_folder, "\\standard_deviation_values.csv"))
+write_csv(stnddev_df, paste0(save_folder, "/standard_deviation_values.csv"))
 shell.exec(save_folder)
 
 
