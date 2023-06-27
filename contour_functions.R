@@ -48,10 +48,9 @@ bin_CTD <- function(filename, baseline, bin_width = 0.5, cutoff = T) {
   baseline <- monthly_avg %>% 
     filter(Year >= baseline[1], 
            Year <= baseline[2]) %>% 
-    group_by(Bin, Locator, Month) %>% 
+    group_by(Bin, BinDepth, Locator, Month) %>% 
     summarize(across(Chlorophyll:NO23, mean, na.rm = T, .names = "{col}_Baseline")) %>% 
-    ungroup() %>% 
-    mutate(BinDepth = sapply(Bin, get_bin_depth), .after = Bin)
+    ungroup()
   
   depth_cutoff <- baseline %>% 
     group_by(Locator, Month) %>% 
