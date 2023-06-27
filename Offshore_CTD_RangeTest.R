@@ -189,7 +189,8 @@ extreme_df <- working_data %>%
          flag_reason = if_else(!is.na(Temperature_Qual_Auto), paste0(flag_reason, "Temp_"), flag_reason),
          flag_reason = if_else(!is.na(Turbidity_Qual_Auto), paste0(flag_reason, "Turb_"), flag_reason),
          flag_reason = if_else(!is.na(NO23_Qual_Auto), paste0(flag_reason, "NO23_"), flag_reason)) %>%
-  filter(flag_reason != "")
+  filter(flag_reason != "") %>%
+  mutate(flag_reason = str_sub(flag_reason, end = -2))
 
 # Makes a barplot to see the most common culprits
 ggplotly(ggplot(extreme_df)+
@@ -251,6 +252,7 @@ stnddev_df <- working_data %>%
          flag_reason = if_else(!is.na(Turbidity_Qual_Auto), paste0(flag_reason, "Turb_"), flag_reason),
          flag_reason = if_else(!is.na(NO23_Qual_Auto), paste0(flag_reason, "NO23_"), flag_reason)) %>%
   filter(flag_reason != "") %>%
+  mutate(flag_reason = str_sub(flag_reason, end = -2)) %>%
   select(flag_reason, everything())
 
 # Creates a barplot of flag_reason, to see what the main culprits are
@@ -295,12 +297,12 @@ test_plot <- ggplot(test)+
   scale_y_reverse()
 
 test_plot2 <- ggplot(test)+
+  geom_ribbon(aes(x = BinDepth,
+                   y = BaselineDO))+
   geom_line(aes(x = BinDepth,
                 y = BaselineDO))+
   scale_x_reverse()+
   coord_flip()+
-  geom_polygon(aes(x = BinDepth,
-                   y = BaselineDO))
 
 
 # autoqual_fields <- c(
