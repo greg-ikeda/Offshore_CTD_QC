@@ -272,17 +272,11 @@ test_plot <- ggplot(test)+
 
 test_plot2 <- ggplot(test)+
   geom_ribbon(aes(x = BinDepth,
-                   y = BaselineDO))+
+                   y = DO_mean))+
   geom_line(aes(x = BinDepth,
                 y = DO_mean))+
   scale_x_reverse()+
   coord_flip()+
-<<<<<<< HEAD
-=======
-  geom_polygon(aes(x = BinDepth,
-                   y = DO_mean))
->>>>>>> dc57d484f10eea7de6633c94dda7906b32730ad4
-
 
 # autoqual_fields <- c(
 #   "Depth_Qual_Auto",
