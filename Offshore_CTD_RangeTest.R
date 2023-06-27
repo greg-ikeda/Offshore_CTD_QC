@@ -50,8 +50,7 @@ CTDdata <- import_CTD(test_data) %>%
          Day = day(Sampledate), 
          YearDay = yday(Sampledate),
          Date = as.Date(Sampledate), 
-         Bin = depth_bin(Depth, bin_width), 
-         BinDepth = sapply(Bin, get_bin_depth))
+         depth_bin(Depth, bin_width))
 tz(CTDdata$Sampledate) <- "America/Los_Angeles"
 
 # Create CTDdata_flagged for baseline calculation WITHOUT previously-flagged bad data

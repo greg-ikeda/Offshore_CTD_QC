@@ -37,15 +37,13 @@ bin_CTD <- function(filename, baseline, bin_width = 0.5, cutoff = T) {
   CTD_data <- import_CTD(filename)
   fancy_data <- process_CTD(CTD_data)
   bin_data <- fancy_data %>% 
-    mutate(Bin = depth_bin(Depth, bin_width), 
-           BinDepth = sapply(Bin, get_bin_depth), 
+    mutate(depth_bin(Depth, bin_width), 
            .after = 5)
   
   monthly_avg <- bin_data %>% 
-    group_by(Locator, Bin, Year, Month) %>% 
+    group_by(Locator, Bin, BinDepth, Year, Month) %>% 
     summarize(across(Chlorophyll:NO23, mean, na.rm = T)) %>% 
-    ungroup() %>% 
-    mutate(BinDepth = sapply(Bin, get_bin_depth), .after = Bin)
+    ungroup()
   
   baseline <- monthly_avg %>% 
     filter(Year >= baseline[1], 
@@ -90,13 +88,11 @@ depth_bin <- function(depth, width) {
   end <- ceiling(max(depth) / width) * width
   break_points <- seq(from = 0, to = end, by = width)
   bins <- cut(depth, breaks = break_points)
-  return(bins)
-}
-
-get_bin_depth <- function(bin) {
-  depths <- parse_number(unlist(strsplit(as.character(bin), ",")))
-  depth <- mean(depths)
-  return(depth)
+  mid <- seq(0 + bin_width/2, end - bin_width/2, bin_width)
+  names(mid) <- levels(bins)
+  out <- data.frame(bins, unname(mid[bins]))
+  names(out) <- c("Bin", "BinDepth")
+  return(out)
 }
 
 process_CTD <- function(CTD_data) {
