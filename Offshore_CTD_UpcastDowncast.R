@@ -55,7 +55,7 @@ CTDdata <- import_CTD(test_data) %>%
 tz(CTDdata$Sampledate) <- "America/Los_Angeles"
 
 CTDdata_up <- CTDdata %>%
-  filter(Updown == "Up")
+  filter(Updown == "Up") 
 colnames(CTDdata_up) <- paste0(colnames(CTDdata_up),"_up")
   
 CTDdata_down <- CTDdata %>%
@@ -82,6 +82,14 @@ working_data <- working_data %>%
   select(BinDepth_up, Date_up, colnames(working_data)[which(str_detect(colnames(working_data), "perc_diff"))], everything())
 
 # Updown_df  --------------------------------------------------------------
+
+chl_maximum <- working_data %>%
+  group_by(Locator_up, Date_up) %>%
+  summarise(chl_max_depth = Depth_down[which.max(Chlorophyll_down, na.rm = TRUE)])
+
+# Identify the depth of the chl max, pycnocline, thermocline, etc. 
+# Create a logical column if it is above or below
+# Use that instead of Depth_up > 50
 
 updown_df <- working_data %>%
   mutate(
@@ -122,7 +130,6 @@ updown_df <- working_data %>%
          flag_reason = if_else(!is.na(NO23_Qual_Auto), paste0(flag_reason, "NO23_"), flag_reason)) %>%
   filter(flag_reason != "") %>%
   mutate(flag_reason = str_sub(flag_reason, end = -2))
-
 
 
 # Plots -------------------------------------------------------------------
