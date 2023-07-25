@@ -9,6 +9,7 @@ library(cmocean)
 library(RColorBrewer)
 library(here)
 library(plotly)
+library(zoo)
 source(here("contour_functions.R"))
 
 starttime <- Sys.time()
@@ -112,44 +113,62 @@ working_data <- full_join(CTDdata, baseline)
 
 # Flagging based on extreme values ----------------------------------------
 
+# Creating a list of acceptable ranges for flagging values. 
+# The order is extreme_min, extreme_max, standard deviation multiplier 
+
+rv <- list(
+  Depth = c(0, 500, 2),
+  Chlorophyll = c(0, 200, 2),
+  Density = c(500, 1100, 2),
+  DO = c(0, 15, 2),
+  SigmaTheta = c(0, 35, 2),
+  Light_Transmission = c(0, 100, 2),
+  PAR = c(-100, 10000, 2),
+  Surface_PAR = c(0, 5000, 2),
+  Salinity = c(0, 40, 2),
+  Temperature = c(0, 25, 2),
+  Turbidity = c(0, 125, 2),
+  NO23 = c(0, 5, 2),
+  SigmaT = c(0, 35, 2))
+
 extreme_df <- working_data %>%
   mutate(
     Depth_Qual_Auto = case_when(
-      Depth < 0 ~ "Rej",
-      Depth > 500 ~ "Rej"),
+      Depth < rv$Depth[1] ~ "Rej",
+      Depth > rv$Depth[2] ~ "Rej"),
     Chlorophyll_Qual_Auto = case_when(
-      Chlorophyll < 0 ~ "Rej",
-      Chlorophyll > 200 ~ "Rej"),
+      Chlorophyll < rv$Chlorophyll[1] ~ "Rej",
+      Chlorophyll > rv$Chlorophyll[2] ~ "Rej"),
     Density_Qual_Auto = case_when(
-      Density < 500 ~ "Rej",
-      Density > 1100 ~ "Rej"),
+      Density < rv$Density[1] ~ "Rej",
+      Density > rv$Density[2] ~ "Rej"),
     DO_Qual_Auto = case_when(
-      DO < 0 ~ "Rej",
-      DO > 15 ~ "Rej"),
+      DO < rv$DO[1] ~ "Rej",
+      DO > rv$DO[2] ~ "Rej"),
     SigmaTheta_Qual_Auto = case_when(
-      SigmaTheta < 0 ~ "Rej",
-      SigmaTheta > 35 ~ "Rej"),
+      SigmaTheta < rv$SigmaTheta[1] ~ "Rej",
+      SigmaTheta > rv$SigmaTheta[2] ~ "Rej"),
     Light_Transmission_Qual_Auto = case_when(
-      Light_Transmission < 0 ~ "Rej",
-      Light_Transmission > 100 ~ "Rej"),
+      Light_Transmission < rv$Light_Transmission[1] ~ "Rej",
+      Light_Transmission > rv$Light_Transmission[2] ~ "Rej"),
     PAR_Qual_Auto = case_when(
-      PAR < 0 ~ "Rej",
-      PAR > 10000 ~ "Rej"),
+      PAR < rv$PAR[1] ~ "Rej",
+      PAR > rv$PAR[2] ~ "Rej"),
     Surface_PAR_Qual_Auto = case_when(
-      Surface_PAR < 0 ~ "Rej",
-      Surface_PAR > 5000 ~ "Rej"),
+      Surface_PAR < rv$Surface_PAR[1] ~ "Rej",
+      Surface_PAR > rv$Surface_PAR[2] ~ "Rej"),
     Salinity_Qual_Auto = case_when(
-      Salinity < 0 ~ "Rej",
-      Salinity > 40 ~ "Rej"),
+      Salinity <  rv$Salinity[1] ~ "Rej",
+      Salinity > rv$Salinity[2] ~ "Rej"),
     Temperature_Qual_Auto = case_when(
-      Temperature < 0 ~ "Rej",
-      Temperature > 25 ~ "Rej"),
+      Temperature < rv$Temperature[1] ~ "Rej",
+      Temperature > rv$Temperature[2] ~ "Rej"),
     Turbidity_Qual_Auto = case_when(
-      Turbidity < 0 ~ "Rej",
-      Turbidity > 125 ~ "Rej"),
+      Turbidity < rv$Turbidity[1] ~ "Rej",
+      Turbidity > rv$Turbidity[2] ~ "Rej"),
     NO23_Qual_Auto = case_when(
-      NO23 < 0 ~ "Rej",
-      NO23 > 5 ~ "Rej")) %>%
+      NO23 < rv$NO23[1] ~ "Rej",
+      NO23 > rv$NO23[2] ~ "Rej")) %>%
   mutate(flag_reason = "",
          flag_reason = if_else(!is.na(Depth_Qual_Auto), paste0(flag_reason, "Depth_"), flag_reason),
          flag_reason = if_else(!is.na(Chlorophyll_Qual_Auto), paste0(flag_reason, "chl_"), flag_reason),
@@ -238,25 +257,98 @@ write_csv(stnddev_df, paste0(save_folder, "/standard_deviation_values.csv"))
 shell.exec(save_folder)
 
 
-# Plotting baseline +- standard dev, with shading (DOESN'T WORK YET!) --------
+# Plotting baseline +- standard dev, with shading --------
+
+test_extreme <- extreme_df %>%
+  filter(Date > mdy("1-1-2012"))
+
+for(errordate in unique(test_extreme$Date)){
+  date <- as.Date(errordate)
+  errormonth <- month(date)
+  baseline_errormonth <- baseline %>%
+    filter(Month == errormonth)
+  plot_data <- ggplot(baseline_errormonth)+
+    geom_line(aes(x = BinDepth,
+                  y = DO_mean),
+              linewidth = 2,
+              alpha = 0.1,
+              color = "blue")+
+    geom_ribbon(aes(x = BinDepth,
+                    y = DO_mean,
+                    ymin = DO_mean - (2*DO_sd),
+                    ymax = DO_mean + (2*DO_sd)),
+                alpha = 0.3)+
+    geom_line(data = test_extreme %>%
+                filter(Date == errordate),
+              aes(x = BinDepth,
+                  y = DO))+
+    scale_x_reverse()+
+    coord_flip()+
+    ggtitle(paste0(date))
+  print(plot_data)
+}
+
+
+errorplotter <- function(date_input, param_input){
+  month <- month(as.Date(date_input))
+  parameter <- paste0(param_input)
+  mean <- paste0(param_input, "_mean")
+  sd <- paste0(param_input, "_sd")
+  qualifier <- paste0(param_input, "_Qual_Auto")
+  
+  baseline_errormonth <- baseline %>%
+    filter(Month == month)
+  plot_data <- ggplot(baseline_errormonth)+
+    geom_line(aes(x = BinDepth,
+                  y = get(mean)),
+              linewidth = 2,
+              alpha = 0.1,
+              color = "blue")+
+    geom_ribbon(aes(x = BinDepth,
+                    y = get(mean),
+                    ymin = (get(mean) - (2*get(sd))),
+                    ymax = (get(mean) + (2*get(sd)))),
+                alpha = 0.2)+
+    geom_line(data = test_extreme %>%
+                filter(Date == errordate),
+              aes(x = BinDepth,
+                  y = get(parameter)),
+              linewidth = 1.2)+
+    geom_line(data = test_extreme %>%
+                filter(Date == errordate),
+              aes(x = BinDepth,
+                  y = get(parameter)),
+              linewidth = 1.2,
+              alpha = 0.1)+
+    geom_point(data = test_extreme %>%
+                filter(Date == errordate),
+              aes(x = BinDepth,
+                  y = get(parameter)),
+              size = 0.3)+
+    scale_x_reverse()+
+    coord_flip()+
+    ggtitle(paste0(date))
+  print(plot_data)
+  ggplotly(plot_data)
+}
+errorplotter(test_extreme$Date[1], colnames(test_extreme)[8])
 
 test <- baseline %>%
   filter(Month == 1)
 
-test_plot <- ggplot(test)+
-  geom_path(aes(y = BinDepth,
-                x = DO_mean))+
-  scale_y_reverse()+
-  geom_path(aes(y = BinDepth,
-                x = DO_mean + DO_sd),
-            color = "blue")+
-  geom_path(aes(y = BinDepth,
-                x = DO_mean - DO_sd),
-            color = "blue")+
-  geom_polygon(aes(y = BinDepth,
-                   x = DO_mean - DO_sd))
+test_plot2 <- ggplot(test)+
+  geom_line(aes(x = BinDepth,
+                y = DO_mean))+
+  geom_ribbon(aes(x = BinDepth,
+                  y = DO_mean,
+                  ymin = (DO_mean - (2*DO_sd)),
+                  ymax = (DO_mean + (2*DO_sd))),
+              alpha = 0.3)+
+  scale_x_reverse()+
+  coord_flip()
+test_plot2
 
-plotly::ggplotly(test_plot)
+plotly::ggplotly(test_plot2)
 
 
 endtime <- Sys.time()
@@ -264,19 +356,6 @@ endtime <- Sys.time()
 (timetorun <- endtime - starttime)
 
 # Scratchpad --------------------------------------------------------------
-
-test_plot <- ggplot(test)+
-  geom_path(aes(y = BinDepth,
-                x = DO_mean))+
-  scale_y_reverse()
-
-test_plot2 <- ggplot(test)+
-  geom_ribbon(aes(x = BinDepth,
-                   y = DO_mean))+
-  geom_line(aes(x = BinDepth,
-                y = DO_mean))+
-  scale_x_reverse()+
-  coord_flip()+
 
 # autoqual_fields <- c(
 #   "Depth_Qual_Auto",
