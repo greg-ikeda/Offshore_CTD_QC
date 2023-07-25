@@ -44,6 +44,8 @@ percent_diff <- function(v1, v2){
 bin_width <- 0.5
 
 # CTDdata <- import_CTD(paste0(folder, fname))
+# Note that not binning&averaging may create problems in the future
+# Something to be aware of!
 CTDdata <- import_CTD(test_data) %>% 
   mutate(Year = year(Sampledate), 
          Month = month(Sampledate), 
@@ -51,21 +53,23 @@ CTDdata <- import_CTD(test_data) %>%
          YearDay = yday(Sampledate),
          Date = as.Date(Sampledate), 
          profile_date = ymd(paste(Year, Month, Day, sep = "-")),
-         depth_bin(Depth, bin_width))
-tz(CTDdata$Sampledate) <- "America/Los_Angeles"
+         depth_bin(Depth, bin_width)) %>% 
+  select(-CastNotes, -Depth, -Sampledate) %>% 
+  relocate(contains("_Qual"), .after = NO23)
 
 CTDdata_up <- CTDdata %>%
-  filter(Updown == "Up")
-colnames(CTDdata_up) <- paste0(colnames(CTDdata_up),"_up")
+  filter(Updown == "Up") %>% 
+  rename_with(~ paste0(.x, "_up"), 
+              .cols = Chlorophyll:NO23_Qual) %>% 
+  select(-Updown)
   
 CTDdata_down <- CTDdata %>%
-  filter(Updown == "Down")
-colnames(CTDdata_down) <- paste0(colnames(CTDdata_down),"_down")
+  filter(Updown == "Down") %>% 
+  rename_with(~ paste0(.x, "_down"), 
+              .cols = Chlorophyll:NO23_Qual) %>% 
+  select(-Updown)
 
-working_data <- full_join(CTDdata_up, CTDdata_down, 
-                          by = join_by(Date_up == Date_down,
-                                       BinDepth_up == BinDepth_down),
-                          keep = TRUE) %>%
+working_data <- full_join(CTDdata_up, CTDdata_down) %>%
   mutate(Chlorophyll_perc_diff = percent_diff(Chlorophyll_up, Chlorophyll_down),
          Density_perc_diff = percent_diff(Density_up, Density_down),
          DO_perc_diff = percent_diff(DO_up, DO_down),
@@ -76,10 +80,11 @@ working_data <- full_join(CTDdata_up, CTDdata_down,
          Salinity_perc_diff = percent_diff(Salinity_up, Salinity_down),
          Temperature_perc_diff = percent_diff(Temperature_up, Temperature_down),
          Turbidity_perc_diff = percent_diff(Turbidity_up, Turbidity_down),
-         NO23_perc_diff = percent_diff(NO23_up, NO23_down)) 
-
-working_data <- working_data %>%
-  select(BinDepth_up, Date_up, colnames(working_data)[which(str_detect(colnames(working_data), "perc_diff"))], everything())
+         NO23_perc_diff = percent_diff(NO23_up, NO23_down)) %>%
+  select(BinDepth, 
+         Date, 
+         contains("perc_diff"), 
+         everything())
 
 # Updown_df  --------------------------------------------------------------
 
