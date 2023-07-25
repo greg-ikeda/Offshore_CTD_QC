@@ -91,27 +91,27 @@ working_data <- full_join(CTDdata_up, CTDdata_down) %>%
 updown_df <- working_data %>%
   mutate(
     Chlorophyll_Qual_Auto = case_when(
-      Depth_up > 50 & Chlorophyll_perc_diff > 50 ~ "q"),
+      BinDepth > 50 & Chlorophyll_perc_diff > 50 ~ "q"),
     Density_Qual_Auto = case_when(
-      Depth_up > 50 & Density_perc_diff > 10 ~ "q"),
+      BinDepth > 50 & Density_perc_diff > 10 ~ "q"),
     DO_Qual_Auto = case_when(
-      Depth_up > 50 & DO_perc_diff > 10 ~ "q"),
+      BinDepth > 50 & DO_perc_diff > 10 ~ "q"),
     SigmaTheta_Qual_Auto = case_when(
-      Depth_up > 50 & SigmaTheta_perc_diff > 10 ~ "q"),
+      BinDepth > 50 & SigmaTheta_perc_diff > 10 ~ "q"),
     Light_Transmission_Qual_Auto = case_when(
-      Depth_up > 50 & Light_Transmission_perc_diff > 10 ~ "q"),
+      BinDepth > 50 & Light_Transmission_perc_diff > 10 ~ "q"),
     PAR_Qual_Auto = case_when(
-      Depth_up > 50 & PAR_perc_diff > 10 ~ "q"),
+      BinDepth > 50 & PAR_perc_diff > 10 ~ "q"),
     Surface_PAR_Qual_Auto = case_when(
-      Depth_up > 50 & Surface_PAR_perc_diff > 10 ~ "q"),
+      BinDepth > 50 & Surface_PAR_perc_diff > 10 ~ "q"),
     Salinity_Qual_Auto = case_when(
-      Depth_up > 50 & Salinity_perc_diff > 10 ~ "q"),
+      BinDepth > 50 & Salinity_perc_diff > 10 ~ "q"),
     Temperature_Qual_Auto = case_when(
-      Depth_up > 50 & Temperature_perc_diff > 10 ~ "q"),
+      BinDepth > 50 & Temperature_perc_diff > 10 ~ "q"),
     Turbidity_Qual_Auto = case_when(
-      Depth_up > 50 & Turbidity_perc_diff > 10 ~ "q"),
+      BinDepth > 50 & Turbidity_perc_diff > 10 ~ "q"),
     NO23_Qual_Auto = case_when(
-      Depth_up > 50 & NO23_perc_diff > 10 ~ "q")) %>%
+      BinDepth > 50 & NO23_perc_diff > 10 ~ "q")) %>%
   mutate_if(is.character, ~replace_na(.,"")) %>% # Replaces NA values with a blank string ""
   mutate(flag_reason = "",
          flag_reason = if_else(!is.na(Chlorophyll_Qual_Auto), paste0(flag_reason, "chl_"), flag_reason),
@@ -134,67 +134,67 @@ updown_df <- working_data %>%
 
 (sal <- ggplot(updown_df)+
    geom_point(aes(x = Salinity_perc_diff,
-                  y = BinDepth_up,
+                  y = BinDepth,
               color = Salinity_Qual_Auto))+
    scale_y_reverse())
 
 (chl <- ggplot(updown_df)+
    geom_point(aes(x = Chlorophyll_perc_diff,
-                  y = BinDepth_up,
+                  y = BinDepth,
               color = Chlorophyll_Qual_Auto))+
    scale_y_reverse())
 
 (den <- ggplot(updown_df)+
    geom_point(aes(x = Density_perc_diff,
-                  y = BinDepth_up,
+                  y = BinDepth,
               color = Temperature_Qual_Auto))+
    scale_y_reverse())
 
 (DO <- ggplot(updown_df)+
    geom_point(aes(x = DO_perc_diff,
-                  y = BinDepth_up,
+                  y = BinDepth,
               color = DO_Qual_Auto))+
    scale_y_reverse())
 
 (lt <- ggplot(updown_df)+
    geom_point(aes(x = Light_Transmission_perc_diff,
-                  y = BinDepth_up,
+                  y = BinDepth,
               color = Light_Transmission_Qual_Auto))+
    scale_y_reverse())
 
 (temp <- ggplot(updown_df)+
    geom_point(aes(x = Temperature_perc_diff,
-                  y = BinDepth_up,
+                  y = BinDepth,
               color = Temperature_Qual_Auto))+
    scale_y_reverse())
 
 (PAR <- ggplot(updown_df)+
    geom_point(aes(x = PAR_perc_diff,
-                  y = BinDepth_up,
+                  y = BinDepth,
               color = PAR_Qual_Auto))+
    scale_y_reverse())
 
 (turb <- ggplot(updown_df)+
    geom_point(aes(x = Turbidity_perc_diff,
-                  y = BinDepth_up,
+                  y = BinDepth,
               color = Turbidity_Qual_Auto))+
    scale_y_reverse())
 
 (no23 <- ggplot(updown_df)+
    geom_point(aes(x = NO23_perc_diff,
-                  y = BinDepth_up,
+                  y = BinDepth,
               color = NO23_Qual_Auto))+
    scale_y_reverse())
 
 (sigmat <- ggplot(updown_df)+
    geom_point(aes(x = SigmaTheta_perc_diff,
-                  y = BinDepth_up,
+                  y = BinDepth,
               color = SigmaTheta_Qual_Auto))+
    scale_y_reverse())
 
 (spar <- ggplot(updown_df)+
    geom_point(aes(x = Surface_PAR_perc_diff,
-                  y = BinDepth_up,
+                  y = BinDepth,
               color = Surface_PAR_Qual_Auto))+
    scale_y_reverse())
 
