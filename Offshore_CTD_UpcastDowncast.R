@@ -86,6 +86,11 @@ working_data <- full_join(CTDdata_up, CTDdata_down) %>%
          contains("perc_diff"), 
          everything())
 
+
+# Identify the depth of the chl max, pycnocline, thermocline, etc. 
+# Create a logical column if it is above or below
+# Use that instead of Depth_up > 50
+
 chl_max <- working_data %>% 
   group_by(Locator, Date) %>% 
   filter(Chlorophyll_Qual_down %in% c(NA, "TA")) %>% 
@@ -93,6 +98,7 @@ chl_max <- working_data %>%
 working_data <- left_join(working_data, chl_max)
 
 # Updown_df  --------------------------------------------------------------
+
 
 updown_df <- working_data %>%
   mutate(
@@ -133,7 +139,6 @@ updown_df <- working_data %>%
          flag_reason = if_else(!is.na(NO23_Qual_Auto), paste0(flag_reason, "NO23_"), flag_reason)) %>%
   filter(flag_reason != "") %>%
   mutate(flag_reason = str_sub(flag_reason, end = -2))
-
 
 
 # Plots -------------------------------------------------------------------
