@@ -86,6 +86,12 @@ working_data <- full_join(CTDdata_up, CTDdata_down) %>%
          contains("perc_diff"), 
          everything())
 
+chl_max <- working_data %>% 
+  group_by(Locator, Date) %>% 
+  filter(Chlorophyll_Qual_down %in% c(NA, "TA")) %>% 
+  summarize(Chl_max_depth = BinDepth[which.max(Chlorophyll_down)])
+working_data <- left_join(working_data, chl_max)
+
 # Updown_df  --------------------------------------------------------------
 
 updown_df <- working_data %>%
