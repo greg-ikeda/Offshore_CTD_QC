@@ -237,48 +237,48 @@ for(errordate in unique(test_extreme$Date)){
 
 
 errorplotter <- function(date_input, param_input){
-  month <- month(as.Date(date_input))
-  parameter <- paste0(param_input)
-  mean <- paste0(param_input, "_mean")
-  sd <- paste0(param_input, "_sd")
-  qualifier <- paste0(param_input, "_Qual_Auto")
+  parm_to_plot <- as.name(param_input)
+  mean_to_plot <- as.name(paste0(param_input, "_mean"))
+  sd_to_plot <- as.name(paste0(param_input, "_sd"))
+  qual_to_plot <- as.name(paste0(param_input, "_Qual_Auto"))
   
   baseline_errormonth <- baseline %>%
-    filter(Month == month)
+    filter(Month == month(as.Date(date_input)))
+  
   plot_data <- ggplot(baseline_errormonth)+
+    geom_ribbon(aes(x = BinDepth,
+                    y = !!mean_to_plot,
+                    ymin = !!mean_to_plot - 2*!!sd_to_plot,
+                    ymax = !!mean_to_plot + 2*!!sd_to_plot),
+                alpha = 0.2)+
     geom_line(aes(x = BinDepth,
-                  y = get(mean)),
+                  y = !!mean_to_plot),
               linewidth = 2,
               alpha = 0.1,
               color = "blue")+
-    geom_ribbon(aes(x = BinDepth,
-                    y = get(mean),
-                    ymin = (get(mean) - (2*get(sd))),
-                    ymax = (get(mean) + (2*get(sd)))),
-                alpha = 0.2)+
     geom_line(data = test_extreme %>%
                 filter(Date == errordate),
               aes(x = BinDepth,
-                  y = get(parameter)),
+                  y = !!param_input),
               linewidth = 1.2)+
     geom_line(data = test_extreme %>%
                 filter(Date == errordate),
               aes(x = BinDepth,
-                  y = get(parameter)),
+                  y = !!param_input),
               linewidth = 1.2,
               alpha = 0.1)+
     geom_point(data = test_extreme %>%
                 filter(Date == errordate),
               aes(x = BinDepth,
-                  y = get(parameter)),
+                  y = !!param_input),
               size = 0.3)+
     scale_x_reverse()+
     coord_flip()+
-    ggtitle(paste0(date))
+    ggtitle(date_input)
   print(plot_data)
-  ggplotly(plot_data)
+  # ggplotly(plot_data)
 }
-errorplotter(test_extreme$Date[1], colnames(test_extreme)[8])
+errorplotter("2023-03-06", colnames(test_extreme)[8])
 
 test <- baseline %>%
   filter(Month == 1)

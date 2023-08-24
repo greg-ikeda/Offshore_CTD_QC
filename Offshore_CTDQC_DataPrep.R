@@ -135,3 +135,12 @@ rv <- list(
   Turbidity = c(0, 125, 2),
   NO23 = c(0, 5, 2),
   SigmaT = c(0, 35, 2))
+
+
+
+# Download discrete data --------------------------------------------------
+
+download_discrete(station,
+                  fname = paste0(here("discrete_data.csv")),
+                  parms_in = 
+                  include_bad = FALSE)
