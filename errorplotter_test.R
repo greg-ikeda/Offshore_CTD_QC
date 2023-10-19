@@ -1,46 +1,6 @@
 # Function to plot specific profiles and parameters --------
 
-# Add _Qual_Auto flags to the working_data, so that the full profile is available to plot
-extreme_df_full <- left_join(working_data, extreme_df)
 
-plot_extreme_error <- function(df, date_input, param_input){
-  parm_to_plot <- as.name(param_input)
-  mean_to_plot <- as.name(paste0(param_input, "_mean"))
-  sd_to_plot <- as.name(paste0(param_input, "_sd"))
-  qual_to_plot <- as.name(paste0(param_input, "_Qual_Auto"))
-  plot_data <- df %>%
-    filter(Date == as.Date(date_input))
-  
-  if(all(is.na(plot_data[qual_to_plot]))){ # plots data without flags
-    ggplot(plot_data)+
-      geom_line(aes(x = BinDepth,
-                    y = !!parm_to_plot),
-                linewidth = 1.2,
-                alpha = 0.1)+
-      geom_point(aes(x = BinDepth,
-                     y = !!parm_to_plot))+
-      scale_size_manual(values = c("TRUE" = 1, "FALSE" = 2))+
-      scale_x_reverse()+
-      coord_flip()+
-      ggtitle(date_input)
-  } else{ #plots data with flags as a different color and size 
-    ggplot(plot_data)+
-      geom_line(data = plot_data %>%
-                  filter(Date == as.Date(date_input)),
-                aes(x = BinDepth,
-                    y = !!parm_to_plot),
-                linewidth = 1.2,
-                alpha = 0.1)+
-      geom_point(aes(x = BinDepth,
-                     y = !!parm_to_plot,
-                     color = !!qual_to_plot,
-                     size = is.na(!!qual_to_plot)))+
-      scale_size_manual(values = c("TRUE" = 1, "FALSE" = 2))+
-      scale_x_reverse()+
-      coord_flip()+
-      ggtitle(date_input)
-  }
-}
 
 # Examples, to see of plot_extreme_error worked 
 # NO23 SUNA error example
@@ -109,6 +69,7 @@ plot_errors_multipanel <- function(df, date_input){
                aes(x = Value, y = Depth,
                    fill = QualityId %in% good_quals_discrete),
                color = "black", shape = 24) +
+    scale_color_manual(values = c("NA" = "black", "Rej" = "red", "q" = "orange")) +
     scale_fill_manual(values = c("TRUE" = "green", "FALSE" = "red"))+
     geom_point(data = bottle_data_full %>% 
                  filter(CollectDate == date_to_plot, 
@@ -118,11 +79,6 @@ plot_errors_multipanel <- function(df, date_input){
                    fill = QualityId %in% good_quals_discrete), 
                color = "black", shape = 24) + 
     scale_fill_manual(values = c("TRUE" = "green", "FALSE" = "red"))
-  if(all(is.na(plot_data$Chlorophyll_Qual_Auto))){
-    p1 <- p1 + 
-      scale_color_manual(values = c("TRUE" = "black", "FALSE"= "red")) +
-      scale_size_manual(values = c(1, 1))
-  }
   
   p4 <- ggplot(data = plot_data) +
     theme_bw() +
@@ -139,13 +95,9 @@ plot_errors_multipanel <- function(df, date_input){
                aes(x = Value, y = Depth,
                    fill = QualityId %in% good_quals_discrete),
                color = "black", shape = 24) +
+    scale_color_manual(values = c("NA" = "black", "Rej" = "red", "q" = "orange")) +
     scale_fill_manual(values = c("TRUE" = "green", "FALSE" = "red"))
-  if(all(is.na(plot_data$DO_Qual_Auto))){
-    p4 <- p4 + 
-      scale_color_manual(values = c("TRUE" = "black", "FALSE"= "red")) +
-      scale_size_manual(values = c(1, 1))
-  }
-  
+
   p7 <- ggplot(data = plot_data) +
     theme_bw() +
     theme(legend.position = "none") +
@@ -161,19 +113,16 @@ plot_errors_multipanel <- function(df, date_input){
                aes(x = Value, y = Depth,
                    fill = QualityId %in% good_quals_discrete),
                color = "black", shape = 24) +
+    scale_color_manual(values = c("NA" = "black", "Rej" = "red", "q" = "orange")) +
     scale_fill_manual(values = c("TRUE" = "green", "FALSE" = "red"))
-  if(all(is.na(plot_data$Salinity_Qual_Auto))){
-    p7 <- p7 + 
-      scale_color_manual(values = c("TRUE" = "black", "FALSE"= "red")) +
-      scale_size_manual(values = c(1, 1))
-  }
-  
+
   p2 <- ggplot(data = plot_data) +
     theme_bw() +
     theme(legend.position = "none") +
     geom_point(aes(x = NO23, y = Depth, 
                    color = NO23_Qual_Auto,
                    size = is.na(NO23_Qual_Auto))) + 
+    scale_color_manual(values = c("NA" = "black", "Rej" = "red", "q" = "orange")) +
     scale_size_manual(values = c("TRUE" = 1, "FALSE" = 2))+
     scale_y_reverse() +
     labs(x = "Nitrate+Nitrite N (mg/L)", y = "Depth (m)") +     
@@ -184,11 +133,6 @@ plot_errors_multipanel <- function(df, date_input){
                    fill = QualityId %in% good_quals_discrete),
                color = "black", shape = 24) +
     scale_fill_manual(values = c("TRUE" = "green", "FALSE" = "red"))
-  if(all(is.na(plot_data$NO23_Qual_Auto))){
-    p2 <- p2 + 
-      scale_color_manual(values = c("TRUE" = "black", "FALSE"= "red")) +
-      scale_size_manual(values = c(1, 1))
-  }
   
   p5 <- ggplot(data = plot_data) +
     theme_bw() +
@@ -198,7 +142,7 @@ plot_errors_multipanel <- function(df, date_input){
                    size = is.na(Temperature_Qual_Auto))) + 
     scale_size_manual(values = c("TRUE" = 1, "FALSE" = 2))+
     scale_y_reverse() +
-    scale_color_manual(values = c("TRUE" = "black", "FALSE"= "red")) + 
+    scale_color_manual(values = c("NA" = "black", "Rej" = "red", "q" = "orange")) +    
     labs(x = expression(paste("Temperature (",degree,"C)")), y = "") +     
     geom_point(data = bottle_data_full %>% filter(CollectDate == date_to_plot, 
                                                   Locator == station, 
@@ -207,11 +151,6 @@ plot_errors_multipanel <- function(df, date_input){
                    fill = QualityId %in% good_quals_discrete), 
                color = "black", shape = 24) + 
     scale_fill_manual(values = c("TRUE" = "green", "FALSE" = "red"))
-  if(all(is.na(plot_data$Temperature_Qual_Auto))){
-    p5 <- p5 + 
-      scale_color_manual(values = c("TRUE" = "black", "FALSE"= "red")) +
-      scale_size_manual(values = c(1, 1))
-  }
   
   p8 <- ggplot(data = plot_data) +
     theme_bw() +
@@ -222,12 +161,9 @@ plot_errors_multipanel <- function(df, date_input){
                    size = is.na(SigmaTheta_Qual_Auto))) + 
     scale_size_manual(values = c("TRUE" = 1, "FALSE" = 2))+
     scale_y_reverse() +
+    scale_color_manual(values = c("NA" = "black", "Rej" = "red", "q" = "orange")) +
     labs(x = expression(sigma[theta]~(kg/m^{3})), y = "")
-  if(all(is.na(plot_data$SigmaTheta_Qual_Auto))){
-    p8 <- p8 + 
-      scale_color_manual(values = c("TRUE" = "black", "FALSE"= "red")) +
-      scale_size_manual(values = c(1, 1))
-  }
+
   
   p3 <- ggplot(data = plot_data) +
     theme_bw() +
@@ -238,12 +174,8 @@ plot_errors_multipanel <- function(df, date_input){
                    size = is.na(Density_Qual_Auto))) + 
     scale_size_manual(values = c("TRUE" = 1, "FALSE" = 2))+
     scale_y_reverse() +
+    scale_color_manual(values = c("NA" = "black", "Rej" = "red", "q" = "orange")) +
     labs(x = expression(Density~(kg/m^{3})), y = "Depth (m)")
-  if(all(is.na(plot_data$Density_Qual_Auto))){
-    p3 <- p3 + 
-      scale_color_manual(values = c("TRUE" = "black", "FALSE"= "red")) +
-      scale_size_manual(values = c(1, 1))
-  }
   
   p6 <- ggplot(data = plot_data) +
     theme_bw() +
@@ -252,14 +184,10 @@ plot_errors_multipanel <- function(df, date_input){
                    y = Depth, 
                    color = Light_Transmission_Qual_Auto,
                    size = is.na(Light_Transmission_Qual_Auto))) + 
+    scale_color_manual(values = c("NA" = "black", "Rej" = "red", "q" = "orange")) +
     scale_size_manual(values = c("TRUE" = 1, "FALSE" = 2))+
     scale_y_reverse() +
     labs(x = "Light transmission", y = "")
-  if(all(is.na(plot_data$Light_Transmission_Qual_Auto))){
-    p6 <- p6 + 
-      scale_color_manual(values = c("TRUE" = "black", "FALSE"= "red")) +
-      scale_size_manual(values = c(1, 1))
-  }
   
   p9 <- ggplot(data = plot_data) +
     theme_bw() +
@@ -268,14 +196,11 @@ plot_errors_multipanel <- function(df, date_input){
                    y = Depth, 
                    color = PAR_Qual_Auto,
                    size = is.na(PAR_Qual_Auto))) + 
+    scale_color_manual(values = c("NA" = "black", "Rej" = "red", "q" = "orange")) +
     scale_size_manual(values = c("TRUE" = 1, "FALSE" = 2))+
     scale_y_reverse() +
     labs(x = "log(PAR)", y = "")
-  if(all(is.na(plot_data$PAR_Qual_Auto))){
-    p9 <- p9 + 
-      scale_color_manual(values = c("TRUE" = "black", "FALSE"= "red")) +
-      scale_size_manual(values = c(1, 1))
-  }
+
   # png(paste0(folder, datatype, "/", station, "_", date_to_plot, "_", datatype, ".png"), width = 750, height = 750) 
   multiplot(p1, p2, p3, p4, p5, p6, p7, p8, p9, cols = 3)
 }
@@ -286,7 +211,6 @@ plot_errors_multipanel(extreme_df_full, "2022-07-05")
 plot_errors_multipanel(extreme_df_full, "2010-04-19")
 
 # Testing with standard deviation flagging
-stnddev_df_full <- left_join(working_data, stnddev_df)
 
 plot_errors_multipanel(stnddev_df_full, "2014-05-07")
 plot_errors_multipanel(stnddev_df_full, "2010-04-19")

@@ -1,0 +1,34 @@
+
+JSUR01: Raw file latest date = 	2023-09-05
+JSUR01: QC'd file latest date = 	2023-09-05
+---------------
+KSBP01: Raw file latest date = 	2023-09-05
+KSBP01: QC'd file latest date = 	2023-07-06
+---------------
+KSSK02: Raw file latest date = 	2022-10-03
+KSSK02: QC'd file latest date = 	2022-10-03
+---------------
+LSEP01: Raw file latest date = 	2022-10-04
+LSEP01: QC'd file latest date = 	2022-10-04
+---------------
+LSKQ06: Raw file latest date = 	2022-10-04
+LSKQ06: QC'd file latest date = 	2022-10-04
+---------------
+LSNT01: Raw file latest date = 	2023-05-02
+LSNT01: QC'd file latest date = 	2023-05-02
+---------------
+LSVV01: Raw file latest date = 	2022-10-04
+LSVV01: QC'd file latest date = 	2022-10-04
+---------------
+LTBC43: Raw file latest date = 	2022-10-03
+LTBC43: QC'd file latest date = 	2022-10-03
+---------------
+LTED04: Raw file latest date = 	2023-06-20
+LTED04: QC'd file latest date = 	2023-06-20
+---------------
+MSJN02: Raw file latest date = 	2022-10-04
+MSJN02: QC'd file latest date = 	2022-10-04
+---------------
+NSEX01: Raw file latest date = 	2023-07-05
+NSEX01: QC'd file latest date = 	2023-07-05
+---------------
