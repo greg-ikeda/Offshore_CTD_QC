@@ -73,6 +73,10 @@ extreme_rej_plot <- ggplotly(ggplot(extreme_df)+
                           geom_bar(aes(x = flag_reason))+
                           theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)))
 ggplotly(extreme_rej_plot)
+htmlwidgets::saveWidget(ggplotly(extreme_rej_plot), 
+                        title = paste0("Extreme Rejected: ", station, "_", Sys.Date()), 
+                        file = paste0(test_save_dir, "/",station, "_", Sys.Date(), ".html"))
+
 
 
 # Saves a .csv file with the results

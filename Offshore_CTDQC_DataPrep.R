@@ -3,7 +3,6 @@
 # Monthly baseline data for offshore data (baseline_data)
 # Discrete bottle data for the specified station and date (bottle_data) 
 # Sets up acceptable ranges and sd multipliers (rv)
-
 # Load Libraries ----------------------------------------------------------
 
 rm(list = ls())
@@ -165,15 +164,15 @@ if(station == "KSBP01"){
     Depth = c(0, 500, 2),
     Chlorophyll = c(0, 200, 2),
     Density = c(500, 1100, 2),
-    DO = c(0, 20, 2),
+    DO = c(0, 20, 2.5),
     SigmaTheta = c(0, 35, 2),
     Light_Transmission = c(0, 100, 2),
     PAR = c(-100, 10000, 2),
     Surface_PAR = c(0, 5000, 2),
-    Salinity = c(0, 40, 2),
+    Salinity = c(0, 40, 2.5),
     Temperature = c(0, 25, 2),
     Turbidity = c(0, 125, 2),
-    NO23 = c(0, 5, 2),
+    NO23 = c(0, 5, 3),
     SigmaT = c(0, 35, 2))
 } else if(station == "KSSK02"){
   rv <- list(
@@ -565,9 +564,9 @@ if (nrow(bottle_data) == 0) {
 
 # Moves png files from here("output") to the appropriate folder for the given QC test
 # Helps with file organization
-move_png_files <- function(save_dir, QC_test_type){
+move_png_files <- function(save_dir, QC_test_type, locator){
   png_output <- list.files(save_dir, pattern = ".png")[which(str_detect(list.files(save_folder, pattern = ".png"), QC_test_type))]
-  print(paste0("Files moved to ", paste0(save_dir,"/",QC_test_type),":"))
+  print(paste0("Files moved to ", paste0(save_dir,"/",QC_test_type, "/", locator),":"))
   if(length(png_output) == 0){
     print(paste("None - no files to move from", QC_test_type))
   } else{
@@ -575,7 +574,7 @@ move_png_files <- function(save_dir, QC_test_type){
   }
   for(png_file in png_output){
     file.rename(from = paste0(save_dir, "/", png_file), 
-                to   = paste0(save_dir, "/", QC_test_type, "/", png_file))
+                to   = paste0(save_dir, "/", QC_test_type, "/", locator, "/", png_file))
   }
 }
 
@@ -809,13 +808,13 @@ plot_errors_multipanel <- function(df, date_input){
     scale_y_reverse() +
     labs(x = "log(PAR)", y = "")
   
-  png(paste0(save_folder, "/", station, "_", date_to_plot, "_", QC_test, ".png"), width = 750, height = 750)
+  png(paste0(save_folder, "/", station, "_", date_to_plot, "_", QC_test, ".png"), width = 1500, height = 1500)
   multiplot(p1, p2, p3, p4, p5, p6, p7, p8, p9, cols = 3)
   dev.off()
 }
 
 # Multipanel version with standard deviation shading
-plot_errors_multipanel_shading <- function(df, date_input){
+plot_errors_multipanel_sd_shading <- function(df, date_input){
   date_to_plot <- ymd(date_input)
   plot_data <- df %>%
     filter(Date == date_to_plot)
@@ -1066,11 +1065,8 @@ plot_errors_multipanel_shading <- function(df, date_input){
     scale_size_manual(values = c("TRUE" = 1, "FALSE" = 2))+
     labs(y = "log(PAR)", x = "")
   
-  png(paste0(save_folder, "/", station, "_", date_to_plot, "_", QC_test, ".png"), width = 750, height = 750)
+  png(paste0(save_folder, "/", station, "_", date_to_plot, "_", QC_test, ".png"), width = 1500, height = 1500)
   multiplot(p1, p2, p3, p4, p5, p6, p7, p8, p9, cols = 3)
   dev.off()
 }
-
-plot_errors_multipanel_shading(stnddev_df_full, ymd("2023-05-15"))
-
 

@@ -5,6 +5,11 @@
 # ---- Try it on the entire profile, as well as below a certain depth
 # - EVENTUALLY add a line in case_when() to specify what happens with good data (aka, no flag in the _qual column).
 
+# source(here("Offshore_CTDQC_DataPrep.R"))
+
+QC_test <- "stnd_dev"
+test_save_dir <- paste0(save_folder, "/", QC_test)
+
 # Libraries and such ------------------------------------------------------
 
 rm(list = ls())
