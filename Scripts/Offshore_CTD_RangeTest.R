@@ -68,7 +68,8 @@ extreme_df <- working_data %>%
 # Add _Qual_Auto flags to the working_data, so that the full profile is available to plot
 extreme_df_full <- left_join(working_data, extreme_df)
 
-# Makes a barplot to see the most common culprits
+# Makes a barplot to see the most common culprits, if any
+
 extreme_rej_plot <- ggplotly(ggplot(extreme_df)+
                           geom_bar(aes(x = flag_reason))+
                           theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)))
@@ -76,8 +77,6 @@ ggplotly(extreme_rej_plot)
 htmlwidgets::saveWidget(ggplotly(extreme_rej_plot), 
                         title = paste0("Extreme Rejected: ", station, "_", Sys.Date()), 
                         file = paste0(test_save_dir, "/",station, "_", Sys.Date(), ".html"))
-
-
 
 # Saves a .csv file with the results
 write_csv(extreme_df, paste0(test_save_dir, "/Extreme_values_range_test.csv"))
@@ -93,4 +92,6 @@ for(cast in profile_dates){
 }
 
 # Moves png files from the save_folder to the appropriate folder for this test
-move_png_files(save_folder, QC_test)
+move_png_files(save_folder, QC_test, station)
+
+shell.exec(here(save_folder, QC_test)) 

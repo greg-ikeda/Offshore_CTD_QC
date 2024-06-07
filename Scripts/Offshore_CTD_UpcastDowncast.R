@@ -14,48 +14,51 @@ library(plotly)
 library(zoo)
 source(here("contour_functions.R"))
 
-# Setup -------------------------------------------------------------------
+# Setup TO BE REMOVED/MODIFIED LATER. WILL BE REPLACED BY DATA PREP SCRIPT -------------------------------------------------------------------
 
-## 
-## This is currently only running on a selection of data from KSBP01 (or whichever file is referenced in "test_data"). 
-## This has not been vetted for other stations yet!
-## May need to program specific cutoff values and standard deviation multipliers for each station
-## I hope not. 
-##
+## NOTE 1: This is currently only running on a subset of data, as the QCd data files in the CTD data repository on the Z:/ drive only contain downcast data
+#          Therefore the Data prep script isn't loading the necessary upcast+downcast data for this test, as it is pulling directly from the CTD data repository 
+#          The "Setup" section here is unique to this test script FOR DEVELOPMENT PURPOSES ONLY. Other tests should utilize the data prep script for consistency.  
 
-# What station do you want figures from?
-station <- "KSBP01"
+## NOTE 2: Some stations have upcast data from when the downcast data was rejected for various reasons
+#### the script upcast_data_check.R will write a new csv file that does the following (CURRENTLY ONLY USED ON KSBP01! Might need modifications ¯\_(ツ)_/¯)
+####          1. Pulls upcast data from the QC'd data file to retain Cast Comments (aka creates a df with just the casts where the upcast is the good cast) 
+####          2. Removes these profile dates (downcast and upcast) from a data file that contains both upcast and downcast for the entire station's data record (e.g. downloaded from the intanet)
+####          3. Writes the good upcast data to the df that contains the upcast+downcast 
+####          4. Reformats stuff to be used with import_CTD
 
-# # Where do you want to save output?
-save_folder <- here("output")
-# folder <- paste0("C:\\Users\\gikeda\\R\\Offshore_CTD_QC\\",
-#                  station, "\\")
-# fname <- list.files(folder, pattern = "_qcd.csv")
 
-test_data <- here("data", "KSBP01_UpcastDowncast.csv")
-
-percent_diff <- function(v1, v2){
+# Note: This function is also in the Data Prep script
+calc_updown_percentdiff <- function(v1, v2){
   diff_perc <- 100 * abs(v1-v2)/((v1+v2)/2)
   return(diff_perc)
 }
 
-# Load data and calculate baseline/Standard deviations --------------------------
+# What station do you want figures from?
+station <- dlgInput("Enter your station", "KSBP01")$res
+date_begin <- dlgInput("Enter the date of the first profile to QC (YYYY-MM-DD)", "2023-01-01")$res
+date_end <- dlgInput("Enter the date of the last profile to QC (YYYY-MM-DD)", Sys.Date())$res
+
+# # Where do you want to save output?
+save_folder <- here("output")
+
+folder <- paste0("//kc.kingcounty.lcl/dnrp/WLRD/STS/Share/Marine Group/CTD_data_repository/", station, "/")
+fname <- list.files(folder, pattern = "_updown.csv")
+
+# Load data and calculate upcast/downcast  --------------------------
 
 bin_width <- 0.5
 
-# CTDdata <- import_CTD(paste0(folder, fname))
-# Note that not binning&averaging may create problems in the future
-# Something to be aware of!
-CTDdata <- import_CTD(test_data) %>% 
+CTDdata <- import_CTD(paste0(folder, fname)) %>% 
   mutate(Year = year(Sampledate), 
          Month = month(Sampledate), 
          Day = day(Sampledate), 
          YearDay = yday(Sampledate),
          Date = as.Date(Sampledate), 
-         profile_date = ymd(paste(Year, Month, Day, sep = "-")),
-         depth_bin(Depth, bin_width)) %>% 
-  select(-CastNotes, -Depth, -Sampledate) %>% 
-  relocate(contains("_Qual"), .after = NO23)
+         depth_bin(Depth, bin_width)) %>%
+  filter(Sampledate > ymd(date_begin),
+         Sampledate < ymd(date_end))
+tz(CTDdata$Sampledate) <- "America/Los_Angeles"
 
 CTDdata_up <- CTDdata %>%
   filter(Updown == "Up") %>% 
@@ -69,18 +72,22 @@ CTDdata_down <- CTDdata %>%
               .cols = Chlorophyll:NO23_Qual) %>% 
   select(-Updown)
 
-working_data <- full_join(CTDdata_up, CTDdata_down) %>%
-  mutate(Chlorophyll_perc_diff = percent_diff(Chlorophyll_up, Chlorophyll_down),
-         Density_perc_diff = percent_diff(Density_up, Density_down),
-         DO_perc_diff = percent_diff(DO_up, DO_down),
-         SigmaTheta_perc_diff = percent_diff(SigmaTheta_up, SigmaTheta_down),
-         Light_Transmission_perc_diff = percent_diff(Light_Transmission_up, Light_Transmission_down),
-         PAR_perc_diff = percent_diff(PAR_up, PAR_down),
-         Surface_PAR_perc_diff = percent_diff(Surface_PAR_up, Surface_PAR_down),
-         Salinity_perc_diff = percent_diff(Salinity_up, Salinity_down),
-         Temperature_perc_diff = percent_diff(Temperature_up, Temperature_down),
-         Turbidity_perc_diff = percent_diff(Turbidity_up, Turbidity_down),
-         NO23_perc_diff = percent_diff(NO23_up, NO23_down)) %>%
+
+working_data <- left_join(CTDdata_up, CTDdata_down,
+                    by = c("Date", "Depth")) %>%
+  select(Sampledate.x, Sampledate.y, everything()) %>%
+  mutate(Chlorophyll_perc_diff = calc_updown_percentdiff(Chlorophyll_up, Chlorophyll_down),
+         Density_perc_diff = calc_updown_percentdiff(Density_up, Density_down),
+         DO_perc_diff = calc_updown_percentdiff(DO_up, DO_down),
+         SigmaTheta_perc_diff = calc_updown_percentdiff(SigmaTheta_up, SigmaTheta_down),
+         Light_Transmission_perc_diff = calc_updown_percentdiff(Light_Transmission_up, Light_Transmission_down),
+         PAR_perc_diff = calc_updown_percentdiff(PAR_up, PAR_down),
+         Surface_PAR_perc_diff = calc_updown_percentdiff(Surface_PAR_up, Surface_PAR_down),
+         Salinity_perc_diff = calc_updown_percentdiff(Salinity_up, Salinity_down),
+         Temperature_perc_diff = calc_updown_percentdiff(Temperature_up, Temperature_down),
+         Turbidity_perc_diff = calc_updown_percentdiff(Turbidity_up, Turbidity_down),
+         NO23_perc_diff = calc_updown_percentdiff(NO23_up, NO23_down),
+         BinDepth = BinDepth.x) %>%
   select(BinDepth, 
          Date, 
          contains("perc_diff"), 
@@ -177,18 +184,6 @@ updown_df <- working_data %>%
    geom_point(aes(x = Temperature_perc_diff,
                   y = BinDepth,
               color = Temperature_Qual_Auto))+
-   scale_y_reverse())
-
-(PAR <- ggplot(updown_df)+
-   geom_point(aes(x = PAR_perc_diff,
-                  y = BinDepth,
-              color = PAR_Qual_Auto))+
-   scale_y_reverse())
-
-(turb <- ggplot(updown_df)+
-   geom_point(aes(x = Turbidity_perc_diff,
-                  y = BinDepth,
-              color = Turbidity_Qual_Auto))+
    scale_y_reverse())
 
 (no23 <- ggplot(updown_df)+

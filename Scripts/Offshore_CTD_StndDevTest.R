@@ -83,7 +83,7 @@ for(cast in profile_dates){
 # Moves png files to the appropriate folder
 move_png_files(save_folder, QC_test, station)
 
-shell.exec(save_folder)
+shell.exec(here(save_folder, QC_test)) 
 
 # Scratchpad --------------------------------------------------------------
 

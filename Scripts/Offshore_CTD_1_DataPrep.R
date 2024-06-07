@@ -3,6 +3,7 @@
 # Monthly baseline data for offshore data (baseline_data)
 # Discrete bottle data for the specified station and date (bottle_data) 
 # Sets up acceptable ranges and sd multipliers (rv)
+
 # Load Libraries ----------------------------------------------------------
 
 rm(list = ls())
@@ -43,7 +44,8 @@ goodqual <- "TA"
 bin_width <- 0.5
 
 CTDdata <- import_CTD(paste0(folder, fname)) %>% 
-  mutate(Year = year(Sampledate), 
+  mutate(Sampledate = ymd_hms(Sampledate),
+         Year = year(Sampledate), 
          Month = month(Sampledate), 
          Day = day(Sampledate), 
          YearDay = yday(Sampledate),
@@ -66,6 +68,7 @@ base_start <- min(CTDdata_flagged$Year)
 base_end <- max(CTDdata_flagged$Year) - 1
 
 # Create baseline data, calculates baseline data, then adds those columns to the working df "working_data"
+
 baseline_data <- CTDdata_flagged %>% 
   select(Date,
          Month, 
@@ -107,7 +110,10 @@ baseline <- baseline_data %>%
 # This df has all of the data that we will be working with - baselines, standard deviations, flags
 working_data <- full_join(CTDdata, baseline) %>%
   filter(Sampledate > ymd(date_begin),
-         Sampledate < ymd(date_end))
+         Sampledate < ymd(date_end)) %>%
+  mutate(Sampledate = ymd_hms(Sampledate),
+         cast_date = date(Sampledate),
+         num_date_ctd = as.numeric(Sampledate))
 
 # Create a list of all profile dates
 profile_dates <- paste0(unique(date(working_data$Sampledate)))
@@ -1070,3 +1076,10 @@ plot_errors_multipanel_sd_shading <- function(df, date_input){
   dev.off()
 }
 
+# Calculates the difference between the upcast and downcast for each depth bin
+calc_updown_percentdiff <- function(v1, v2){
+  diff_perc <- 100 * abs(v1-v2)/((v1+v2)/2)
+  return(diff_perc)
+}
+
+source(here("Scripts", "Offshore_CTD_RangeTest.R"))
