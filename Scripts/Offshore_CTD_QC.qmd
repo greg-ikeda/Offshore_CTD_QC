@@ -1,0 +1,154 @@
+---
+title: "Offshore CTD QC"
+format: html
+editor: visual
+engine: knitr
+execute:
+  freeze: auto  # re-render only when source changes
+  # cache: true
+---
+
+## QCing Offshore CTD Data
+
+This script creates a visual HTML file that displays the results of the following tests:
+
+1.  **Gross range test**: flags CTD data as BAD that is is outside a reasonable range (e.g. water temperature is between 0° C and 70° C)
+
+2.  **Standard deviation test**: flags CTD data as QUESTIONABLE that is outside expected values (aka within a set \# of standard deviations), based on historical baseline data.
+
+3.  **Spike test**: flags individual data points as QUESTIONABLE if they are outside of an acceptable margin of error (aka spikes).
+
+4.  **Upcast / Downcast test**: flags data as QUESTIONABLE if significantly different between the upcast and the downcast.
+
+5.  **Comparison to bottle data**: flags bins of data data as QUESTIONABLE if they are significantly different from bottle data.
+
+6.  **Comparison to historical baseline:** INCOMPLETE
+
+## 1. Load Data
+
+```{r Setup}
+#| label: setup
+
+# Set initial parameters - someday change this to an inline Shiny dashboard
+
+station <- "KSBP01"
+date_begin <- "2024-04-01"
+date_end <- "2024-07-01"
+dl_new_discrete <- "n"
+
+```
+
+```{r Load Data}
+#| label: load-data
+#| code-fold: true
+#| code-summary: "Code: Loading Libraries and Data"
+#| message: false
+#| warning: false
+#| collapse: true
+
+library(here)
+source(here("scripts", "Offshore_CTD_1_DataPrep.R"))
+```
+
+## 2. Gross Range Test
+
+```{r Gross Range Test}
+#| label: gross-range-test
+#| code-fold: true
+#| code-summary: "Gross Range Test"
+#| message: false
+#| warning: false
+#| collapse: true
+#| echo: false
+
+source(here("scripts", "Offshore_CTD_RangeTest.R"))
+
+if(nrow(extreme_df) == 0){
+  print("All data pass extreme QC")
+} else{
+  ggplotly(extreme_rej_plot)
+}
+
+rt_error_dates <- unique(extreme_df$Date)
+
+if(length(rt_error_dates) > 0){
+  allplots <- vector("list")
+  count <- 0
+  
+  for(cast in rt_error_dates){
+    count <- count + 1
+    cast_doi <- ymd(cast)
+    profile_of_interest <- extreme_df_full %>%
+      filter(date(Sampledate) == cast_doi)
+    allplots[[count]] <- plot_errors_multipanel_inline(profile_of_interest, cast_doi)
+    }
+} else{
+  print("All data pass Range Test")
+}
+```
+
+## 2. Standard Deviation Test
+
+```{r Standard Deviation Test}
+#| label: standard-dev-test
+#| lightbox:
+#|   group: stnd_dev
+#|   description: This is 1 to 10 plot
+#| layout-ncol: 5
+#| warning: false
+#| message: false
+#| code-fold: true
+
+source(here("scripts", "Offshore_CTD_StndDevTest.R"))
+
+sd_error_dates <- paste0(unique(stnddev_df$Date))
+
+if(length(stnddev_df) > 0){
+  sd_plots <- vector("list")
+  count <- 0
+  
+  for(cast in sd_error_dates){
+    count <- count + 1
+    cast_doi <- ymd(cast)
+    profile_of_interest <- stnddev_df_full %>%
+      filter(date(Sampledate) == cast_doi)
+    
+    sd_plots[[count]] <- plot_errors_multipanel_sd_shading_inline(profile_of_interest, cast_doi)
+    print(sd_plots[[count]])
+  }
+} else{
+  print("All data pass Standard Deviation Test")
+}
+
+
+```
+
+```{r Standard Deviation Test Gallery}
+#| lightbox:
+#|   group: r-graph
+#|   description: This is 1 to 10 plot
+#| layout-ncol: 5
+#| warning: false
+#| label: gallery-test
+#| message: false
+#| code-fold: true
+
+
+library(patchwork)
+
+sd_plots <- vector("list")
+count <- 0
+
+for(cast in sd_error_dates){
+  count <- count + 1
+  cast_doi <- ymd(cast)
+  profile_of_interest <- stnddev_df_full %>%
+    filter(date(Sampledate) == cast_doi)
+
+  sd_plots[[count]] <- plot_errors_multipanel_sd_shading_inline(profile_of_interest, cast_doi)
+  print(sd_plots[[count]])
+}
+
+
+
+```

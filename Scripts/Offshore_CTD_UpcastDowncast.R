@@ -1,19 +1,3 @@
-# Libraries and such ------------------------------------------------------
-
-rm(list = ls())
-library(tidyverse)
-library(viridis)
-library(lubridate)
-library(kcmarine)
-library(readxl)
-library(metR)
-library(cmocean)
-library(RColorBrewer)
-library(here)
-library(plotly)
-library(zoo)
-source(here("contour_functions.R"))
-
 # Setup TO BE REMOVED/MODIFIED LATER. WILL BE REPLACED BY DATA PREP SCRIPT -------------------------------------------------------------------
 
 ## NOTE 1: This is currently only running on a subset of data, as the QCd data files in the CTD data repository on the Z:/ drive only contain downcast data
@@ -27,12 +11,6 @@ source(here("contour_functions.R"))
 ####          3. Writes the good upcast data to the df that contains the upcast+downcast 
 ####          4. Reformats stuff to be used with import_CTD
 
-
-# Note: This function is also in the Data Prep script
-calc_updown_percentdiff <- function(v1, v2){
-  diff_perc <- 100 * abs(v1-v2)/((v1+v2)/2)
-  return(diff_perc)
-}
 
 # What station do you want figures from?
 station <- dlgInput("Enter your station", "KSBP01")$res

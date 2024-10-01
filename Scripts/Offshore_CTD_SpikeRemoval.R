@@ -7,7 +7,7 @@
 
 # source(here("Offshore_CTDQC_DataPrep.R"))
 
-QC_test <- "stnd_dev"
+QC_test <- "spike"
 test_save_dir <- paste0(save_folder, "/", QC_test)
 
 # Libraries and such ------------------------------------------------------
