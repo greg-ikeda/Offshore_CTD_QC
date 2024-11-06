@@ -666,7 +666,10 @@ plot_errors_multipanel_sd_shading <- function(df, date_input){
     scale_size_manual(values = c("TRUE" = 1, "FALSE" = 2))+
     labs(y = "log(PAR)", x = "")
   
-  png(paste0(save_folder, "/", station, "_", date_to_plot, "_", QC_test, ".png"), width = 1500, height = 1500)
+  png(paste0(save_folder, "/", 
+             QC_test, "/", 
+             station, "/", 
+             station, "_", date_to_plot, "_", QC_test, ".png"), width = 1500, height = 1500)
   multiplot(p1, p2, p3, p4, p5, p6, p7, p8, p9, cols = 3)
   dev.off()
 }
@@ -923,7 +926,172 @@ plot_errors_multipanel_sd_shading_inline <- function(df, date_input){
   
   return((p1 + p4 + p7) / (p2 + p5 + p8) / (p3 + p6 + p9) + 
            plot_annotation(paste0(station, " ", date_to_plot)))
-  dev.off()
+}
+
+# Multipanel plot for upcast/downcast % difference
+
+plot_errors_multipanel_updown <- function(df, date_input){
+  date_to_plot <- ymd(date_input)
+  plot_data <- df %>%
+    filter(Date == date_to_plot)
+  
+  # Temperature
+  if(max(plot_data$Temperature_perc_diff, na.rm = TRUE) > 10){
+    temperature_maxval = max(plot_data$Temperature_perc_diff, na.rm = TRUE) * 1.1
+  } else{
+    temperature_maxval = 10
+  }
+  temperature_plot <- ggplot(plot_data)+
+    geom_point(aes(x = Temperature_perc_diff,
+                   y = BinDepth,
+                   color = Temperature_Qual_Auto))+
+    coord_cartesian(xlim = c(-0.1, temperature_maxval))+
+    theme(legend.position = "none") +
+    scale_y_reverse()
+  
+  # Salinity
+  if(max(plot_data$Salinity_perc_diff, na.rm = TRUE) > 10){
+    salinity_maxval = max(plot_data$Salinity_perc_diff, na.rm = TRUE) * 1.1
+  } else{
+    salinity_maxval = 10
+  }
+  sal <- ggplot(plot_data)+
+    geom_point(aes(x = Salinity_perc_diff,
+                   y = BinDepth,
+                   color = Salinity_Qual_Auto))+
+    coord_cartesian(xlim = c(-0.1, salinity_maxval))+
+    theme(legend.position = "none") +
+    scale_y_reverse()
+  
+  # Chl
+  if(max(plot_data$Chlorophyll_perc_diff, na.rm = TRUE) > 50){
+    chl_maxval = max(plot_data$Chlorophyll_perc_diff, na.rm = TRUE) * 1.1
+  } else{
+    chl_maxval = 50
+  }
+  chl <- ggplot(plot_data)+
+    geom_point(aes(x = Chlorophyll_perc_diff,
+                   y = BinDepth,
+                   color = Chlorophyll_Qual_Auto))+
+    coord_cartesian(xlim = c(-0.1, chl_maxval))+
+    theme(legend.position = "none") +
+    scale_y_reverse()
+  
+  # Density
+  if(max(plot_data$Density_perc_diff, na.rm = TRUE) > 10){
+    density_maxval = max(plot_data$Density_perc_diff, na.rm = TRUE) * 1.1
+  } else{
+    density_maxval = 0.25
+  }
+  density <- ggplot(plot_data)+
+    geom_point(aes(x = Density_perc_diff,
+                   y = BinDepth,
+                   color = Density_Qual_Auto))+
+    coord_cartesian(xlim = c(-0.1, density_maxval))+
+    theme(legend.position = "none") +
+    scale_y_reverse()
+  
+  # DO
+  if(max(plot_data$DO_perc_diff, na.rm = TRUE) > 10){
+    DO_maxval = max(plot_data$DO_perc_diff, na.rm = TRUE) * 1.1
+  } else{
+    DO_maxval = 10
+  }
+  DO <- ggplot(plot_data)+
+    geom_point(aes(x = DO_perc_diff,
+                   y = BinDepth,
+                   color = DO_Qual_Auto))+
+    coord_cartesian(xlim = c(-0.1, DO_maxval))+
+    theme(legend.position = "none") +
+    scale_y_reverse()
+  
+  # Light Transmission
+  if(max(plot_data$Light_Transmission_perc_diff, na.rm = TRUE) > 10){
+    lt_maxval = max(plot_data$Light_Transmission_perc_diff, na.rm = TRUE) * 1.1
+  } else{
+    lt_maxval = 10
+  }
+  light_transmission <- ggplot(plot_data)+
+    geom_point(aes(x = Light_Transmission_perc_diff,
+                   y = BinDepth,
+                   color = Light_Transmission_Qual_Auto))+
+    coord_cartesian(xlim = c(-0.1, lt_maxval))+
+    theme(legend.position = "none") +
+    scale_y_reverse()
+  
+  # Nitrate + Nitrite
+  if(max(plot_data$NO23_perc_diff, na.rm = TRUE) > 15){
+    NO23_maxval = max(plot_data$NO23_perc_diff, na.rm = TRUE) * 1.1
+  } else{
+    NO23_maxval = 10
+  }
+  NO23 <- ggplot(plot_data)+
+    geom_point(aes(x = NO23_perc_diff,
+                   y = BinDepth,
+                   color = NO23_Qual_Auto))+
+    coord_cartesian(xlim = c(-0.1, NO23_maxval))+
+    theme(legend.position = "none") +
+    scale_y_reverse()
+  
+  # Sigma-Theta
+  if(max(plot_data$SigmaTheta_perc_diff, na.rm = TRUE) > 10){
+    st_maxval = max(plot_data$SigmaTheta_perc_diff, na.rm = TRUE) * 1.1
+  } else{
+    st_maxval = 5
+  }
+  sigmatheta <- ggplot(plot_data)+
+    geom_point(aes(x = SigmaTheta_perc_diff,
+                   y = BinDepth,
+                   color = SigmaTheta_Qual_Auto))+
+    coord_cartesian(xlim = c(-0.1, st_maxval))+
+    theme(legend.position = "none") +
+    scale_y_reverse()
+  
+  # Surface PAR
+  if(max(plot_data$Surface_PAR_perc_diff, na.rm = TRUE) > 30){
+    SPAR_maxval = max(plot_data$Surface_PAR_perc_diff, na.rm = TRUE) * 1.1
+  } else{
+    SPAR_maxval = 30
+  }
+  surface_PAR <- ggplot(plot_data)+
+    geom_point(aes(x = Surface_PAR_perc_diff,
+                   y = BinDepth,
+                   color = Surface_PAR_Qual_Auto))+
+    coord_cartesian(xlim = c(-0.1, SPAR_maxval))+
+    theme(legend.position = "none") +
+    scale_y_reverse()
+  
+  # PAR
+  if(max(plot_data$PAR_perc_diff, na.rm = TRUE) > 10){
+    PAR_maxval = max(plot_data$PAR_perc_diff, na.rm = TRUE) * 1.1
+  } else{
+    PAR_maxval = 10
+  }
+  PAR <- ggplot(plot_data)+
+    geom_point(aes(x = PAR_perc_diff,
+                   y = BinDepth,
+                   color = PAR_Qual_Auto))+
+    coord_cartesian(xlim = c(-0.1, PAR_maxval))+
+    theme(legend.position = "none") +
+    scale_y_reverse()
+  
+  p <-  (chl + DO + sal) / 
+    (NO23 + temperature_plot + sigmatheta) / 
+    (density + light_transmission + PAR) + 
+    plot_annotation(paste0(station, " ", date_to_plot))
+  
+  save_dir <- paste0(save_folder, "/", 
+                     QC_test, "/", 
+                     station, "/")
+  dir.create(save_dir, showWarnings = FALSE)  
+  filename <- paste0(station, "_",date_to_plot, "_", QC_test, ".png")
+  
+  ggsave(paste0(save_dir,
+                filename), 
+         p,
+         width = 20, height = 20)
+  
+  return(p)
 }
 
 # Calculates the difference between the upcast and downcast for each depth bin

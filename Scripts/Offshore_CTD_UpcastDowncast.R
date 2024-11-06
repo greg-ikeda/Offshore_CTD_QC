@@ -1,58 +1,26 @@
-# Setup TO BE REMOVED/MODIFIED LATER. WILL BE REPLACED BY DATA PREP SCRIPT -------------------------------------------------------------------
+# This test compares the upcast and the downcast and flags data that are significantly different.
 
-## NOTE 1: This is currently only running on a subset of data, as the QCd data files in the CTD data repository on the Z:/ drive only contain downcast data
-#          Therefore the Data prep script isn't loading the necessary upcast+downcast data for this test, as it is pulling directly from the CTD data repository 
-#          The "Setup" section here is unique to this test script FOR DEVELOPMENT PURPOSES ONLY. Other tests should utilize the data prep script for consistency.  
+# source(here("Offshore_CTDQC_DataPrep.R"))
 
-## NOTE 2: Some stations have upcast data from when the downcast data was rejected for various reasons
-#### the script upcast_data_check.R will write a new csv file that does the following (CURRENTLY ONLY USED ON KSBP01! Might need modifications ¯\_(ツ)_/¯)
-####          1. Pulls upcast data from the QC'd data file to retain Cast Comments (aka creates a df with just the casts where the upcast is the good cast) 
-####          2. Removes these profile dates (downcast and upcast) from a data file that contains both upcast and downcast for the entire station's data record (e.g. downloaded from the intanet)
-####          3. Writes the good upcast data to the df that contains the upcast+downcast 
-####          4. Reformats stuff to be used with import_CTD
+QC_test <- "up_down_comparison"
+test_save_dir <- paste0(save_folder, "/", QC_test)
 
+# Prep Data ---------------------------------------------------------------
 
-# What station do you want figures from?
-station <- dlgInput("Enter your station", "KSBP01")$res
-date_begin <- dlgInput("Enter the date of the first profile to QC (YYYY-MM-DD)", "2023-01-01")$res
-date_end <- dlgInput("Enter the date of the last profile to QC (YYYY-MM-DD)", Sys.Date())$res
-
-# # Where do you want to save output?
-save_folder <- here("output")
-
-folder <- paste0("//kc.kingcounty.lcl/dnrp/WLRD/STS/Share/Marine Group/CTD_data_repository/", station, "/")
-fname <- list.files(folder, pattern = "_updown.csv")
-
-# Load data and calculate upcast/downcast  --------------------------
-
-bin_width <- 0.5
-
-CTDdata <- import_CTD(paste0(folder, fname)) %>% 
-  mutate(Year = year(Sampledate), 
-         Month = month(Sampledate), 
-         Day = day(Sampledate), 
-         YearDay = yday(Sampledate),
-         Date = as.Date(Sampledate), 
-         depth_bin(Depth, bin_width)) %>%
-  filter(Sampledate > ymd(date_begin),
-         Sampledate < ymd(date_end))
-tz(CTDdata$Sampledate) <- "America/Los_Angeles"
-
-CTDdata_up <- CTDdata %>%
+CTDdata_up <- working_data %>%
   filter(Updown == "Up") %>% 
   rename_with(~ paste0(.x, "_up"), 
               .cols = Chlorophyll:NO23_Qual) %>% 
   select(-Updown)
-  
-CTDdata_down <- CTDdata %>%
+
+CTDdata_down <- working_data %>%
   filter(Updown == "Down") %>% 
   rename_with(~ paste0(.x, "_down"), 
               .cols = Chlorophyll:NO23_Qual) %>% 
   select(-Updown)
 
-
-working_data <- left_join(CTDdata_up, CTDdata_down,
-                    by = c("Date", "Depth")) %>%
+updown_working_data <- left_join(CTDdata_up, CTDdata_down,
+                                 by = c("Locator", "Date", "Depth")) %>%
   select(Sampledate.x, Sampledate.y, everything()) %>%
   mutate(Chlorophyll_perc_diff = calc_updown_percentdiff(Chlorophyll_up, Chlorophyll_down),
          Density_perc_diff = calc_updown_percentdiff(Density_up, Density_down),
@@ -66,53 +34,60 @@ working_data <- left_join(CTDdata_up, CTDdata_down,
          Turbidity_perc_diff = calc_updown_percentdiff(Turbidity_up, Turbidity_down),
          NO23_perc_diff = calc_updown_percentdiff(NO23_up, NO23_down),
          BinDepth = BinDepth.x) %>%
-  select(BinDepth, 
+  filter(BinDepth > 3) %>% # Removing large variation at the surface 3m 
+  select(Locator,
+         BinDepth, 
          Date, 
          contains("perc_diff"), 
          everything())
-
 
 # Identify the depth of the chl max, pycnocline, thermocline, etc. 
 # Create a logical column if it is above or below
 # Use that instead of Depth_up > 50
 
-chl_max <- working_data %>% 
-  group_by(Locator, Date) %>% 
-  filter(Chlorophyll_Qual_down %in% c(NA, "TA")) %>% 
-  summarize(Chl_max_depth = BinDepth[which.max(Chlorophyll_down)])
-working_data <- left_join(working_data, chl_max)
+chl_max <- tibble()
+for(profile in profile_dates){
+  profile_date <- ymd(profile)
+  tempdata <- updown_working_data %>%
+    filter(Date == profile_date,
+           Chlorophyll_Qual_down %in% c(NA, "TA")) %>%
+    group_by(Date) %>%
+    summarize(chl_max_depth = BinDepth[which.max(Chlorophyll_down)])
+  chl_max <- bind_rows(chl_max, tempdata)
+}
+
+chl_max_working_data <- left_join(updown_working_data, chl_max) %>%
+  select(Locator, Date, chl_max_depth, everything())
 
 # Updown_df  --------------------------------------------------------------
 
-
-updown_df <- working_data %>%
+updown_df <- chl_max_working_data %>%
   mutate(
     Chlorophyll_Qual_Auto = case_when(
-      BinDepth > 50 & Chlorophyll_perc_diff > 50 ~ "q"),
+      BinDepth > 15 & Chlorophyll_perc_diff > 50 ~ "q"),
     Density_Qual_Auto = case_when(
-      BinDepth > 50 & Density_perc_diff > 10 ~ "q"),
+      BinDepth > 15 & Density_perc_diff > 0.2 ~ "q"),
     DO_Qual_Auto = case_when(
-      BinDepth > 50 & DO_perc_diff > 10 ~ "q"),
+      BinDepth > 15 & DO_perc_diff > 10 ~ "q"),
     SigmaTheta_Qual_Auto = case_when(
-      BinDepth > 50 & SigmaTheta_perc_diff > 10 ~ "q"),
+      BinDepth > 15 & SigmaTheta_perc_diff > 10 ~ "q"),
     Light_Transmission_Qual_Auto = case_when(
-      BinDepth > 50 & Light_Transmission_perc_diff > 10 ~ "q"),
+      BinDepth > 15 & Light_Transmission_perc_diff > 10 ~ "q"),
     PAR_Qual_Auto = case_when(
-      BinDepth > 50 & PAR_perc_diff > 10 ~ "q"),
+      BinDepth > 15 & PAR_perc_diff > 100 ~ "q"),
     Surface_PAR_Qual_Auto = case_when(
-      BinDepth > 50 & Surface_PAR_perc_diff > 10 ~ "q"),
+      BinDepth > 15 & Surface_PAR_perc_diff > 30 ~ "q"),
     Salinity_Qual_Auto = case_when(
-      BinDepth > 50 & Salinity_perc_diff > 10 ~ "q"),
+      BinDepth > 15 & Salinity_perc_diff > 10 ~ "q"),
     Temperature_Qual_Auto = case_when(
-      BinDepth > 50 & Temperature_perc_diff > 10 ~ "q"),
+      BinDepth > 15 & Temperature_perc_diff > 10 ~ "q"),
     Turbidity_Qual_Auto = case_when(
-      BinDepth > 50 & Turbidity_perc_diff > 10 ~ "q"),
+      BinDepth > 15 & Turbidity_perc_diff > 10 ~ "q"),
     NO23_Qual_Auto = case_when(
-      BinDepth > 50 & NO23_perc_diff > 10 ~ "q")) %>%
-  mutate_if(is.character, ~replace_na(.,"")) %>% # Replaces NA values with a blank string ""
+      BinDepth > 15 & NO23_perc_diff > 15 ~ "q")) %>%
   mutate(flag_reason = "",
-         flag_reason = if_else(!is.na(Chlorophyll_Qual_Auto), paste0(flag_reason, "chl_"), flag_reason),
-         flag_reason = if_else(!is.na(Density_Qual_Auto), paste0(flag_reason, "density_"), flag_reason),
+         flag_reason = if_else(!is.na(Chlorophyll_Qual_Auto), paste0(flag_reason, "Chl_"), flag_reason),
+         flag_reason = if_else(!is.na(Density_Qual_Auto), paste0(flag_reason, "Density_"), flag_reason),
          flag_reason = if_else(!is.na(DO_Qual_Auto), paste0(flag_reason, "DO_"), flag_reason),
          flag_reason = if_else(!is.na(SigmaTheta_Qual_Auto), paste0(flag_reason, "SigmaT_"), flag_reason),
          flag_reason = if_else(!is.na(Light_Transmission_Qual_Auto), paste0(flag_reason, "Light_"), flag_reason),
@@ -122,64 +97,29 @@ updown_df <- working_data %>%
          flag_reason = if_else(!is.na(Temperature_Qual_Auto), paste0(flag_reason, "Temp_"), flag_reason),
          flag_reason = if_else(!is.na(Turbidity_Qual_Auto), paste0(flag_reason, "Turb_"), flag_reason),
          flag_reason = if_else(!is.na(NO23_Qual_Auto), paste0(flag_reason, "NO23_"), flag_reason)) %>%
-  filter(flag_reason != "") %>%
+  mutate_if(is.character, ~replace_na(.,"")) %>%
   mutate(flag_reason = str_sub(flag_reason, end = -2))
 
 
-# Plots -------------------------------------------------------------------
+# Flagged Data plots ------------------------------------------------------
 
-(sal <- ggplot(updown_df)+
-   geom_point(aes(x = Salinity_perc_diff,
-                  y = BinDepth,
-              color = Salinity_Qual_Auto))+
-   scale_y_reverse())
+updown_flagged <- updown_df %>%
+  filter(flag_reason != "")
 
-(chl <- ggplot(updown_df)+
-   geom_point(aes(x = Chlorophyll_perc_diff,
-                  y = BinDepth,
-              color = Chlorophyll_Qual_Auto))+
-   scale_y_reverse())
+fullvector <- c()
+flagged_data <- updown_flagged$flag_reason
 
-(den <- ggplot(updown_df)+
-   geom_point(aes(x = Density_perc_diff,
-                  y = BinDepth,
-              color = Temperature_Qual_Auto))+
-   scale_y_reverse())
+count <- 0
+for(item in flagged_data){
+  count <- count + 1
+  flag_vector <- str_split_1(item, "_")
+  fullvector <- c(fullvector, flag_vector)
+}
+vector_df <- tibble(fullvector) %>%
+  filter(fullvector != "SPAR") # Removing SPAR as this test does not apply
 
-(DO <- ggplot(updown_df)+
-   geom_point(aes(x = DO_perc_diff,
-                  y = BinDepth,
-              color = DO_Qual_Auto))+
-   scale_y_reverse())
-
-(lt <- ggplot(updown_df)+
-   geom_point(aes(x = Light_Transmission_perc_diff,
-                  y = BinDepth,
-              color = Light_Transmission_Qual_Auto))+
-   scale_y_reverse())
-
-(temp <- ggplot(updown_df)+
-   geom_point(aes(x = Temperature_perc_diff,
-                  y = BinDepth,
-              color = Temperature_Qual_Auto))+
-   scale_y_reverse())
-
-(no23 <- ggplot(updown_df)+
-   geom_point(aes(x = NO23_perc_diff,
-                  y = BinDepth,
-              color = NO23_Qual_Auto))+
-   scale_y_reverse())
-
-(sigmat <- ggplot(updown_df)+
-   geom_point(aes(x = SigmaTheta_perc_diff,
-                  y = BinDepth,
-              color = SigmaTheta_Qual_Auto))+
-   scale_y_reverse())
-
-(spar <- ggplot(updown_df)+
-   geom_point(aes(x = Surface_PAR_perc_diff,
-                  y = BinDepth,
-              color = Surface_PAR_Qual_Auto))+
-   scale_y_reverse())
-
-
+updown_rej_plot <- ggplot(vector_df) +
+  geom_bar(aes(x = fullvector)) +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank()) +
+  labs(title = "Samples Flagged by Upcast/Downcast Test")

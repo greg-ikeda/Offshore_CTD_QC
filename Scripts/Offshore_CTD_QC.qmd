@@ -47,7 +47,7 @@ dl_new_discrete <- "n"
 #| collapse: true
 
 library(here)
-source(here("scripts", "Offshore_CTD_1_DataPrep.R"))
+source(here("scripts", "Offshore_CTD_DataPrep.R"))
 ```
 
 ## 2. Gross Range Test

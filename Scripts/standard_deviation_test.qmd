@@ -1,0 +1,178 @@
+---
+title: "Offshore CTD QC"
+format: html
+editor: visual
+engine: knitr
+execute:
+  freeze: auto  # re-render only when source changes
+  # cache: true
+---
+
+## QCing Offshore CTD Data
+
+This script creates a visual HTML file that displays the results of the following tests:
+
+1.  **Gross range test**: flags CTD data as BAD that is is outside a reasonable range (e.g. water temperature is between 0° C and 70° C)
+
+2.  **Standard deviation test**: flags CTD data as QUESTIONABLE that is outside expected values (aka within a set \# of standard deviations), based on historical baseline data.
+
+3.  **Spike test**: flags individual data points as QUESTIONABLE if they are outside of an acceptable margin of error (aka spikes).
+
+4.  **Upcast / Downcast test**: flags data as QUESTIONABLE if significantly different between the upcast and the downcast.
+
+5.  **Comparison to bottle data**: flags bins of data data as QUESTIONABLE if they are significantly different from bottle data.
+
+6.  **Comparison to historical baseline:** INCOMPLETE
+
+## 1. Load Data
+
+```{r Setup}
+#| label: setup
+
+# Set initial parameters - someday change this to an inline Shiny dashboard
+
+station <- "KSBP01"
+date_begin <- "2024-04-01"
+date_end <- "2024-07-01"
+dl_new_discrete <- "n"
+
+```
+
+```{r Load Data}
+#| label: load-data
+#| code-fold: true
+#| code-summary: "Code: Loading Libraries and Data"
+#| message: false
+#| warning: false
+#| collapse: true
+
+library(here)
+source(here("scripts", "Offshore_CTD_1_DataPrep.R"))
+```
+
+## 2. Standard Deviation Test
+
+```{r Standard Deviation Test}
+#| label: standard-dev-test
+#| warning: false
+#| message: false
+#| code-fold: true
+
+QC_test <- "stnd_dev"
+test_save_dir <- paste0(save_folder, "/", QC_test)
+
+# Flag data based on extreme ranges, as defined in rv ---------------------
+# Applies "q" flag to data outside  minimum (mean - rv[3]*sd) and extreme maximum (mean + rv[3]*sd) 
+# Flags are appended to a new column "###_Qual_Auto" for each param
+# Creates new "flag_reason" column that denotes every param that received a flag
+
+stnddev_df <- working_data %>%
+  mutate(
+    Chlorophyll_Qual_Auto = case_when(
+      Chlorophyll < (Chlorophyll_mean - rv$Chlorophyll[3]*Chlorophyll_sd) ~ "q",
+      Chlorophyll > (Chlorophyll_mean + rv$Chlorophyll[3]*Chlorophyll_sd) ~ "q"),
+    Density_Qual_Auto = case_when(
+      Density < (Density_mean - rv$Density[3]*Density_sd) ~ "q",
+      Density > (Density_mean + rv$Density[3]*Density_sd) ~ "q"),
+    DO_Qual_Auto = case_when(
+      DO < (DO_mean - rv$DO[3]*DO_sd) ~ "q",
+      DO > (DO_mean + rv$DO[3]*DO_sd) ~ "q"),
+    Light_Transmission_Qual_Auto = case_when(
+      Light_Transmission < (Light_Transmission_mean - rv$Light_Transmission[3]*Light_Transmission_sd) ~ "q",
+      Light_Transmission > (Light_Transmission_mean + rv$Light_Transmission[3]*Light_Transmission_sd) ~ "q"),
+    PAR_Qual_Auto = case_when(
+      PAR < (PAR_mean - rv$PAR[3]*PAR_sd) ~ "q",
+      PAR > (PAR_mean + rv$PAR[3]*PAR_sd) ~ "q"),
+    Surface_PAR_Qual_Auto = case_when(
+      Surface_PAR < (Surface_PAR_mean - rv$Surface_PAR[3]*Surface_PAR_sd) ~ "q",
+      Surface_PAR > (Surface_PAR_mean + rv$Surface_PAR[3]*Surface_PAR_sd) ~ "q"),
+    Salinity_Qual_Auto = case_when(
+      Salinity < (Salinity_mean - rv$Salinity[3]*Salinity_sd) ~ "q",
+      Salinity > (Salinity_mean + rv$Salinity[3]*Salinity_sd) ~ "q"),
+    Temperature_Qual_Auto = case_when(
+      Temperature < (Temperature_mean - rv$Temperature[3]*Temperature_sd) ~ "q",
+      Temperature > (Temperature_mean + rv$Temperature[3]*Temperature_sd) ~ "q"),
+    Turbidity_Qual_Auto = case_when(
+      Turbidity < (Turbidity_mean - rv$Turbidity[3]*Turbidity_sd) ~ "q",
+      Turbidity > (Turbidity_mean + rv$Turbidity[3]*Turbidity_sd) ~ "q"),
+    NO23_Qual_Auto = case_when(
+      NO23 < (NO23_mean - rv$NO23[3]*NO23_sd) ~ "q",
+      NO23 > (NO23_mean + rv$NO23[3]*NO23_sd) ~ "q"),
+    SigmaTheta_Qual_Auto = case_when(
+      SigmaTheta < (SigmaTheta_mean - 5*SigmaTheta_sd) ~ "q",
+      SigmaTheta > (SigmaTheta_mean + 5*SigmaTheta_sd) ~ "q")) %>%
+  mutate(flag_reason = "",
+         flag_reason = if_else(!is.na(Chlorophyll_Qual_Auto), paste0(flag_reason, "chl_"), flag_reason),
+         flag_reason = if_else(!is.na(Density_Qual_Auto), paste0(flag_reason, "density_"), flag_reason),
+         flag_reason = if_else(!is.na(DO_Qual_Auto), paste0(flag_reason, "DO_"), flag_reason),
+         flag_reason = if_else(!is.na(SigmaTheta_Qual_Auto), paste0(flag_reason, "SigmaT_"), flag_reason),
+         flag_reason = if_else(!is.na(Light_Transmission_Qual_Auto), paste0(flag_reason, "Light_"), flag_reason),
+         flag_reason = if_else(!is.na(PAR_Qual_Auto), paste0(flag_reason, "PAR_"), flag_reason),
+         flag_reason = if_else(!is.na(Surface_PAR_Qual_Auto), paste0(flag_reason, "SPAR_"), flag_reason),
+         flag_reason = if_else(!is.na(Salinity_Qual_Auto), paste0(flag_reason, "Sal_"), flag_reason),
+         flag_reason = if_else(!is.na(Temperature_Qual_Auto), paste0(flag_reason, "Temp_"), flag_reason),
+         flag_reason = if_else(!is.na(Turbidity_Qual_Auto), paste0(flag_reason, "Turb_"), flag_reason),
+         flag_reason = if_else(!is.na(NO23_Qual_Auto), paste0(flag_reason, "NO23_"), flag_reason)) %>%
+  filter(flag_reason != "") %>%
+  mutate(flag_reason = str_sub(flag_reason, end = -2)) %>%
+  select(flag_reason, everything())
+
+stnddev_df_full <- left_join(working_data, stnddev_df)
+
+# Creates a barplot of flag_reason, to see what the main culprits are
+stnddev_q <- ggplot(stnddev_df)+
+  geom_bar(aes(x = flag_reason))+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+htmlwidgets::saveWidget(ggplotly(stnddev_q), 
+                        title = paste0("Standard Dev Flagged: ", station, "_", Sys.Date()), 
+                        file = paste0(test_save_dir, "/",station, "_", Sys.Date(), ".html"))
+
+write_csv(stnddev_df, paste0(test_save_dir, "/standard_deviation_values.csv"))
+
+# Plot Data and save as png files---------------------------------------------------------------
+# Saves to a png file in the save_folder
+for(cast in profile_dates){
+  cast_doi <- ymd(cast)
+  profile_of_interest <- stnddev_df_full %>%
+    filter(date(Sampledate) == cast_doi)
+  plot_errors_multipanel_sd_shading(profile_of_interest, cast_doi)
+}
+
+# Moves png files to the appropriate folder
+move_png_files(save_folder, QC_test, station)
+
+shell.exec(here(save_folder, QC_test)) 
+
+```
+
+```{r Standard Deviation Figures}
+#| label: standard-dev-figs
+#| lightbox:
+#|   group: stnd_dev
+#| layout-ncol: 5
+#| warning: false
+#| message: false
+#| code-fold: true
+#| fig-height: 10
+#| fig-width: 10
+
+sd_error_dates <- paste0(unique(stnddev_df$Date))
+
+if(length(stnddev_df) > 0){
+  sd_plots <- vector("list")
+  count <- 0
+  
+  for(cast in sd_error_dates){
+    count <- count + 1
+    cast_doi <- ymd(cast)
+    profile_of_interest <- stnddev_df_full %>%
+      filter(date(Sampledate) == cast_doi)
+    
+    sd_plots[[count]] <- plot_errors_multipanel_sd_shading_inline(profile_of_interest, cast_doi)
+    print(sd_plots[[count]])
+  }
+} else{
+  print("All data pass Standard Deviation Test")
+}
+
+```
