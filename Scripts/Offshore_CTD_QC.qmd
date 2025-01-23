@@ -32,8 +32,8 @@ This script creates a visual HTML file that displays the results of the followin
 # Set initial parameters - someday change this to an inline Shiny dashboard
 
 station <- "KSBP01"
-date_begin <- "2024-04-01"
-date_end <- "2024-07-01"
+date_begin <- "2024-01-01"
+date_end <- "2024-10-01"
 dl_new_discrete <- "n"
 
 ```
@@ -87,7 +87,7 @@ if(length(rt_error_dates) > 0){
 }
 ```
 
-## 2. Standard Deviation Test
+## 3. Standard Deviation Test
 
 ```{r Standard Deviation Test}
 #| label: standard-dev-test
@@ -104,18 +104,20 @@ source(here("scripts", "Offshore_CTD_StndDevTest.R"))
 sd_error_dates <- paste0(unique(stnddev_df$Date))
 
 if(length(stnddev_df) > 0){
-  sd_plots <- vector("list")
-  count <- 0
-  
-  for(cast in sd_error_dates){
-    count <- count + 1
-    cast_doi <- ymd(cast)
-    profile_of_interest <- stnddev_df_full %>%
-      filter(date(Sampledate) == cast_doi)
-    
-    sd_plots[[count]] <- plot_errors_multipanel_sd_shading_inline(profile_of_interest, cast_doi)
-    print(sd_plots[[count]])
-  }
+  # sd_plots <- vector("list")
+  # count <- 0
+  # 
+  # for(cast in sd_error_dates){
+  #   count <- count + 1
+  #   cast_doi <- ymd(cast)
+  #   profile_of_interest <- stnddev_df_full %>%
+  #     filter(date(Sampledate) == cast_doi)
+  #   
+  #   sd_plots[[count]] <- plot_errors_multipanel_sd_shading_inline(profile_of_interest, cast_doi)
+  #   print(sd_plots[[count]])
+  # }
+  print("Dates with standard deviations errors:")
+  print(tibble(sd_error_dates), n = Inf)
 } else{
   print("All data pass Standard Deviation Test")
 }
@@ -123,7 +125,7 @@ if(length(stnddev_df) > 0){
 
 ```
 
-```{r Standard Deviation Test Gallery}
+```{r Standard Deviation Gallery}
 #| lightbox:
 #|   group: r-graph
 #|   description: This is 1 to 10 plot
@@ -151,4 +153,45 @@ for(cast in sd_error_dates){
 
 
 
+```
+
+## 4. Upcast / Downcast Comparison 
+
+```{r Upcast Downcast Test}
+#| label: upcast-downcast-test
+#| lightbox:
+#|   group: upcast-downcast
+#| layout-ncol: 5
+#| warning: false
+#| message: false
+#| code-fold: true
+#| fig-height: 10
+#| fig-width: 10
+
+source(here("scripts", "Offshore_CTD_UpcastDowncast.R"))
+
+if(nrow(updown_flagged) == 0){
+  print("All upcast/downcast data are within reasonable range")
+} else{
+  updown_rej_plot
+}
+
+updown_error_dates <- paste0(unique(updown_flagged$Date))
+
+if(length(updown_error_dates) > 0){
+  allplots <- vector("list")
+  count <- 0
+  
+  for(cast in updown_error_dates){
+    count <- count + 1
+    cast_doi <- ymd(cast)
+    profile_of_interest <- updown_df %>%
+      filter(Date == cast_doi)
+    
+    allplots[[count]] <- plot_errors_multipanel_updown(profile_of_interest, cast_doi)
+    print(allplots[[count]])
+  }
+} else{
+  print("All upcast and downcast data are comparable")
+}
 ```

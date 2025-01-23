@@ -48,6 +48,8 @@ fname <- list.files(folder, pattern = "_qcd.csv")
 badquals <- c("E", "TA, E", "E, Rej", "E,Rej", "E, rej", "R, E", "E, TA",
               "rej", "Rej", "REJ", "R", "Rej, E, TA", "E, TA, rej", "R, TA", "Rej, E",
               "TA, Q", "Q")
+autoquals <- c("q", "q1", "q2", "q3", "rej")
+
 goodqual <- "TA"
 
 bin_width <- 0.5
@@ -59,8 +61,15 @@ CTDdata <- import_CTD(paste0(folder, fname)) %>%
          Day = day(Sampledate), 
          YearDay = yday(Sampledate),
          Date = as.Date(Sampledate), 
-         depth_bin(Depth, bin_width))
-tz(CTDdata$Sampledate) <- "America/Los_Angeles"
+         depth_bin(Depth, bin_width)) %>%
+  mutate(Depth = ifelse(Updown == "Up", Depth * -1, Depth)) %>%
+  arrange(Locator, Date, Updown, Depth) %>%
+  mutate(Depth = abs(Depth))
+
+tz(CTDdata$Sampledate) <- "America/Los_Angeles" 
+
+
+
 
 # Create CTDdata_flagged for baseline calculation WITHOUT previously-flagged bad data
 CTDdata_flagged <- CTDdata %>% 
@@ -127,10 +136,20 @@ working_data <- full_join(CTDdata, baseline) %>%
          Sampledate < ymd(date_end)) %>%
   mutate(Sampledate = ymd_hms(Sampledate),
          cast_date = date(Sampledate),
-         num_date_ctd = as.numeric(Sampledate))
+         num_date_ctd = as.numeric(Sampledate)) 
 
 # Create a list of all profile dates
 profile_dates <- paste0(unique(date(working_data$Sampledate)))
+
+# Create a list of all of the parameters
+parmlist <- c("Chlorophyll",
+              "Density",
+              "DO",
+              "Light_Transmission",
+              "SigmaTheta",
+              "Salinity",
+              "Temperature",
+              "NO23")
 
 # Establish the acceptable ranges for each parameter, for each station -----------------------------------------
   # The order is [1]extreme_min, [2]extreme_max, [3]standard deviation multiplier 

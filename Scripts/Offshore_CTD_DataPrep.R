@@ -125,6 +125,16 @@ working_data <- full_join(CTDdata, baseline) %>%
 # Create a list of all profile dates
 profile_dates <- paste0(unique(date(working_data$Sampledate)))
 
+# Create a list of all of the parameters
+parmlist <- c("Chlorophyll",
+              "Density",
+              "DO",
+              "Light_Transmission",
+              "SigmaTheta",
+              "Salinity",
+              "Temperature",
+              "NO23")
+
 # Establish the acceptable ranges for each parameter, for each station -----------------------------------------
   # The order is [1]extreme_min, [2]extreme_max, [3]standard deviation multiplier 
 if(station == "KSBP01"){
